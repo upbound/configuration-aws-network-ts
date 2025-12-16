@@ -1,0 +1,19 @@
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: crossplane-contrib-function-basic-app
+#  annotations:
+    # This tells crossplane beta render to connect to the function locally.
+#    render.crossplane.io/runtime: Development
+spec:
+  package: index.docker.io/steve/function-basic-app:v0.0.2
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: crossplane-contrib-function-auto-ready
+spec:
+  # Use auto-ready that supports k8s resources
+  #package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.5.2
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.0.0-20251127090758-8a160bdce9fb

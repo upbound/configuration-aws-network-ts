@@ -1,0 +1,36 @@
+{
+  "name": "function-template-typescript",
+  "version": "0.1.0",
+  "description": "Template for Crossplane function in Typescript",
+  "keywords": [
+    "crossplane",
+    "typescript",
+    "kubernetes"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "github.com/upbound/function-template-typescript"
+  },
+  "license": "Apache-2.0",
+  "author": "Steven Borrelli <steve@borrelli.org>",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "docker-build": "docker-build -t function-template-typescript .",
+    "local": "node dist/main.js --insecure --debug",
+    "tsc": "tsc",
+    "tsgo": "tsgo",
+    "check-types": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@types/node": "^24.10.1",
+    "commander": "^12.0.0",
+    "function-sdk-typescript": "file:./function-sdk-typescript",
+    "kubernetes-models": "^4.5.1",
+    "pino": "^10.1.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "^7.0.0-dev.20251202.1"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+
+# Compiled ts files
+dist
+
+# Crossplane packages
+*.xpkg
+*.tar
+
+# Build artifacts
+_build
+
+# AI Helpers
+.claude

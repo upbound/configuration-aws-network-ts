@@ -1,0 +1,16 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: basicapps.platform.upbound.io
+spec:
+  compositeTypeRef:
+    apiVersion: platform.upbound.io/v1
+    kind: BasicApp
+  mode: Pipeline
+  pipeline:
+    - functionRef:
+        name: crossplane-contrib-function-basic-app
+      step: render-app
+    - functionRef:
+        name: crossplane-contrib-function-auto-ready
+      step: crossplane-contrib-function-auto-ready

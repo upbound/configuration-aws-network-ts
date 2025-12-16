@@ -1,0 +1,10 @@
+node_modules
+dist
+example
+Dockerfile
+.dockerignore
+.git
+_build
+.tar
+.xpkg
+.gz
