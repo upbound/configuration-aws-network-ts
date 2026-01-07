@@ -1,9 +1,0 @@
-node_modules
-dist
-Dockerfile
-.dockerignore
-.git
-_build
-.tar
-.xpkg
-.gz
