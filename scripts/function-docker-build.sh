@@ -1,8 +1,7 @@
 #!/bin/sh
 
+set -e
 source ./env
-
-set -xe
 
 mkdir -p ${DOCKER_IMAGE_DIR}
 for platform in ${BUILD_PLATFORMS}; do 

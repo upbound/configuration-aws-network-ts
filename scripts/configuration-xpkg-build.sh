@@ -2,7 +2,7 @@
 
 source ./env
 
-set -xe
+set -xeu
 
 mkdir -p ${XPKG_DIR}
   crossplane xpkg build \

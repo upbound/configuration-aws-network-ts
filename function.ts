@@ -151,8 +151,8 @@ export class Function implements FunctionHandler {
                         labels: {
                             access: subnet?.type || "private",
                             zone: subnet?.availabilityZone,
-                            "networks.aws.platform.upbound.io/network-id": id
-                        }
+                            "networks.aws.platform.upbound.io/network-id": id,
+                        },
                     },
                     spec: {
                         ...commonSpec,
@@ -178,13 +178,13 @@ export class Function implements FunctionHandler {
                     },
                 });
                 s.validate();
-
-                desiredComposed["subnet-" + name] = Resource.fromJSON({
+                const subnetKey = "subnet-" + name;
+                desiredComposed[subnetKey] = Resource.fromJSON({
                     resource: s.toJSON(),
                 });
 
-                // collect status for all subnets
-                const subnetId = observedComposed?.name?.resource?.status
+
+                const subnetId = observedComposed?.[subnetKey]?.resource?.status
                     ?.atProvider?.id;
                 if (subnetId) {
                     subnetIds.push(subnetId);
@@ -280,7 +280,7 @@ export class Function implements FunctionHandler {
                         },
                         routeTableIdSelector: {
                             matchControllerRef: true,
-                        }
+                        },
                     },
                 },
             });
@@ -378,11 +378,11 @@ export class Function implements FunctionHandler {
                 );
             // update the composite status
             const xrStatus: XRStatus = {
-                ...privateSubnetIds && { "privateSubnetIds": privateSubnetIds },
-                ...publicSubnetIds && { "publicSubnetIds": publicSubnetIds },
-                ...securityGroupIds && { "securityGroupIds": securityGroupIds },
-                ...subnetIds && { "subnetIds": subnetIds },
-                ...vpcId && { "vpcId": vpcId },
+                ...(privateSubnetIds.length > 0 && { privateSubnetIds }),
+                ...(publicSubnetIds.length > 0 && { publicSubnetIds }),
+                ...(securityGroupIds.length > 0 && { securityGroupIds }),
+                ...(subnetIds.length > 0 && { subnetIds }),
+                ...(vpcId && { vpcId }),
             };
 
             rsp = setDesiredCompositeStatus({ rsp, status: xrStatus });

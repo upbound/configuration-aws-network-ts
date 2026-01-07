@@ -40,7 +40,7 @@ kind: Configuration
 metadata:
   name: configuration-aws-network
 spec:
-  package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.6
+  package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.8
 ```
 
 Verify the package is healthy. If not, run `kubectl describe configuration.pkg configuration-aws-network`.
@@ -48,7 +48,7 @@ Verify the package is healthy. If not, run `kubectl describe configuration.pkg c
 ```sh
 $ kubectl get configuration.pkg  configuration-aws-network 
 NAME                        INSTALLED   HEALTHY   PACKAGE                                                           AGE
-configuration-aws-network   True        True      xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.6   18m
+configuration-aws-network   True        True      xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.8   18m
 ```
 
 ### Configuring AWS Authentication
@@ -96,7 +96,7 @@ spec:
     source: Secret
     secretRef:
       name: aws-creds
-      namespace: crossplane-config
+      namespace: crossplane-system
       key: creds
 EOF
 ```
@@ -290,8 +290,8 @@ The images will be saved in the `_build/docker` directory:
 
 ```bash
 $ ls -al _build/docker_images 
-configuration-aws-network-ts-function-runtime-amd64-v0.0.7.tar
-configuration-aws-network-ts-function-runtime-arm64-v0.0.7.tar
+configuration-aws-network-ts-function-runtime-amd64-v0.0.8.tar
+configuration-aws-network-ts-function-runtime-arm64-v0.0.8.tar
 ```
 
 #### Function Crossplane Package Build
@@ -312,8 +312,8 @@ The created function images will be in the `_build/xpkg` directory:
 
 ```shell
 $ ls _build/xpkg 
-configuration-aws-network-ts-function-amd64-v0.0.7.xpkg
-configuration-aws-network-ts-function-arm64-v0.0.7.xpkg
+configuration-aws-network-ts-function-amd64-v0.0.8.xpkg
+configuration-aws-network-ts-function-arm64-v0.0.8.xpkg
 ```
 
 #### Pushing the Function Package

@@ -12,7 +12,7 @@ metadata:
     meta.crossplane.io/readme: |
       This configuration is used for deploying and managing AWS network clusters on Kubernetes using Crossplane. This setup provides the necessary infrastructure to deploy AWS network managed with Crossplane in Kubernetes. This approach ensures a flexible, streamlined deployment workflow.
 
-      For more details and customization options, you can explore [the GitHub repository](https://github.com/upbound/configuration-aws-network).
+      For more details and customization options, you can explore [the GitHub repository](https://github.com/upbound/configuration-aws-network-ts).
 spec:
   crossplane:
     version: ">=v1.14.1-0"

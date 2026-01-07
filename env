@@ -1,7 +1,7 @@
 VERSION=0.0.7
 CONFIGURATION_NAME=configuration-aws-network-ts
 FN_NAME=${CONFIGURATION_NAME}-function
-# Temp until we move to crossplane-contrib
+
 XPKG_REPO=xpkg.upbound.io/upboundcare
 
 BUILD_PLATFORMS="amd64 arm64"
