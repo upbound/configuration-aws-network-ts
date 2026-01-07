@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { newGrpcServer, startServer, FunctionRunner, type ServerOptions } from "function-sdk-typescript";
+import { newGrpcServer, startServer, FunctionRunner, type ServerOptions } from "@crossplane-org/function-sdk-typescript";
 import { pino } from "pino";
 import { Function } from "./function.js";
 

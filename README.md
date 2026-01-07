@@ -1,41 +1,205 @@
-# Crossplane Function Template - TypeScript
+# Crossplane Function Template - TypeScript <!-- omit from toc -->
 
-A template for building Crossplane composition functions in TypeScript using the [function-sdk-typescript](https://github.com/upbound/function-sdk-typescript).
+This repository contains a Typescript implementation of [configuration-aws-network](https://github.com/upbound/configuration-aws-network), using Crossplane's [function-sdk-typescript](https://www.npmjs.com/package/@crossplane-org/function-sdk-typescript).
 
-## Overview
+- [Installing and Running the Configuration and Function](#installing-and-running-the-configuration-and-function)
+  - [Installation of the Package](#installation-of-the-package)
+  - [Configuring AWS Authentication](#configuring-aws-authentication)
+    - [AWS static credentials](#aws-static-credentials)
+  - [Create the ProviderConfig](#create-the-providerconfig)
+  - [Create the Example](#create-the-example)
+  - [Deleting the Example](#deleting-the-example)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Updating the Function](#updating-the-function)
+  - [Build TypeScript](#build-typescript)
+  - [Type Checking](#type-checking)
+  - [Running Locally](#running-locally)
+  - [Available CLI Options](#available-cli-options)
+- [Packaging the Function and the Configuration](#packaging-the-function-and-the-configuration)
+  - [Function](#function)
+    - [Function Docker Build](#function-docker-build)
+    - [Function Crossplane Package Build](#function-crossplane-package-build)
+    - [Pushing the Function Package](#pushing-the-function-package)
+  - [Configuration](#configuration)
+  - [Configuration Package Build](#configuration-package-build)
+  - [Configuration Package Push](#configuration-package-push)
+- [License](#license)
+- [Author](#author)
 
-This template provides a starting point for developing Crossplane functions that can transform, validate, and generate Kubernetes resources within Crossplane compositions. The example function creates sample Deployment and Pod resources.
 
-## Prerequisites
+## Installing and Running the Configuration and Function
 
-- Node.js 25 or later
-- npm
-- Docker (for building container images)
-- TypeScript versions 5+  (tsgo can compile the project)
+### Installation of the Package
+
+The Configuration Package can be installed using a manifest. The package will install the function and AWS providers as dependencies.
+
+```shell
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: configuration-aws-network
+spec:
+  package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.6
+```
+
+Verify the package is healthy. If not, run `kubectl describe configuration.pkg configuration-aws-network`.
+
+```sh
+$ kubectl get configuration.pkg  configuration-aws-network 
+NAME                        INSTALLED   HEALTHY   PACKAGE                                                           AGE
+configuration-aws-network   True        True      xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.6   18m
+```
+
+### Configuring AWS Authentication
+
+Before running the example, we will need to configure authentication to the AWS API.
+
+#### AWS static credentials
+
+AWS Static credentials can be useful in testing, but more secure methods like IRSA or WebIdentity should
+be used in production, see [AUTHENTICATION.md](https://github.com/crossplane-contrib/provider-upjet-aws/blob/main/AUTHENTICATION.md) for more information.
+
+Create `[default]` credentials config file from AWS that contains the access key, secret access key and
+optionally the session token:
+
+```ini
+[default]
+aws_access_key_id=ASIA.....
+aws_secret_access_key=5XgS...
+aws_session_token=IQoJb3H...
+```
+
+Next, create a kubernetes secret from this file:
+
+```shell
+kubectl create secret generic aws-creds -n crossplane-system --from-file=creds=creds.conf
+```
+
+### Create the ProviderConfig
+
+The ProviderConfig sets up authentication for the resource. Since we are using a secret, we will use a `source: Secret` in the configuration. The example will create resources in the `network-team` namespace, so the ProviderConfig will be created in the same namespace:
+
+```shell
+kubectl create ns network-team
+```
+
+```shell 
+$ cat <<'EOF' | kubectl apply -f -
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: network-team
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      name: aws-creds
+      namespace: crossplane-config
+      key: creds
+EOF
+```
+
+### Create the Example
+
+Now apply the example manifest at [examples/network/configuration-aws-network.yaml](examples/network/configuration-aws-network.yaml).
+
+```shell
+$ kubectl apply -f examples/network/configuration-aws-network.yaml 
+network.aws.platform.upbound.io/configuration-aws-network created
+```
+
+Watch the progress of the composition using `crossplane beta trace`:
+
+```shell
+crossplane beta trace -n network-team network.aws.platform.upbound.io/configuration-aws-network                            S
+
+NAME                                                                                 SYNCED   READY   STATUS
+Network/configuration-aws-network (network-team)                                     True     True    Available
+├─ InternetGateway/configuration-aws-network-86880a2c0461 (network-team)             True     True    Available
+├─ MainRouteTableAssociation/configuration-aws-network-f4b5988c90f5 (network-team)   True     True    Available
+├─ RouteTableAssociation/configuration-aws-network-2e2a0cb68ab8 (network-team)       True     True    Available
+├─ RouteTableAssociation/configuration-aws-network-57c4e3e03aa8 (network-team)       True     True    Available
+├─ RouteTableAssociation/configuration-aws-network-7669785a9ee0 (network-team)       True     True    Available
+├─ RouteTableAssociation/configuration-aws-network-d0ade4f595fb (network-team)       True     True    Available
+├─ RouteTable/configuration-aws-network-4febc5d559a4 (network-team)                  True     True    Available
+├─ Route/configuration-aws-network-987ac7b6b283 (network-team)                       True     True    Available
+├─ SecurityGroupRule/configuration-aws-network-3064b2116c58 (network-team)           True     True    Available
+├─ SecurityGroupRule/configuration-aws-network-f44882ae4f21 (network-team)           True     True    Available
+├─ SecurityGroup/configuration-aws-network-4e91c030ba97 (network-team)               True     True    Available
+├─ Subnet/configuration-aws-network-02e5d0d89c09 (network-team)                      True     True    Available
+├─ Subnet/configuration-aws-network-0cfac105d82f (network-team)                      True     True    Available
+├─ Subnet/configuration-aws-network-1492137b191f (network-team)                      True     True    Available
+├─ Subnet/configuration-aws-network-fe2b7c268226 (network-team)                      True     True    Available
+└─ VPC/configuration-aws-network-ba1005ecd45f (network-team)                         True     True    Available
+```
+
+### Deleting the Example
+
+```shell
+kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws-network   
+```
 
 ## Project Structure
 
-```
+```sh
 .
-├── functionn.ts              # Main function implementation
-├── main.ts            # Entry point and server setup
-├── package.json       # Dependencies and scripts
-├── tsconfig.json      # TypeScript configuration
-├── Dockerfile         # Container image definition
-└── function-sdk-typescript/  # Local copy of the SDK (private repo)
-```
-
-## Installation
-
-1. Clone this repository
-2. Ensure the `function-sdk-typescript` SDK is present in the project directory
-3. Install dependencies:
-
-```bash
-npm install
+├── Dockerfile           # Dockerfile to build a runnable function
+├── README.md
+├── apis                 # Crossplane XRD and Composition files
+├── dist                 # Compiled Artifacts
+├── env                  # Build Environment variables
+├── examples             # Example manifests
+├── function.ts          # Function logic
+├── jest.config.js       # Jest test config
+├── main.ts              # Set up function runtime
+├── node_modules
+├── package.json
+├── scripts             # Scripts to build and push function images
+└── tsconfig.json
 ```
 
 ## Development
+
+## Updating the Function
+
+All the logic of the function is located in [function.ts]. This project contains Typescript types from at <https://www.npmjs.com/package/@crossplane-models/provider-upjet-aws>, which has all the resources in the 2.x upjet-based providers.
+
+To create a resource:
+
+1. Create a new type (like a VPC)
+2. Run `validate()` against the resource.
+3. Add the resource to the `desiredComposed` map.
+
+Below is an example for the VPC resource.
+
+```typescript
+const vpc = new VPC({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        cidrBlock: observedComposite?.resource?.spec?.parameters
+                            ?.vpcCidrBlock,
+                        enableDnsHostnames: true,
+                        enableDnsSupport: true,
+                        region: region,
+                        tags: {
+                            Name: observedComposite?.resource?.metadata?.name,
+                        },
+                    },
+                },
+            });
+
+            vpc.validate();
+
+            desiredComposed["vpc"] = Resource.fromJSON({
+                resource: vpc.toJSON(),
+            });
+```
 
 ### Build TypeScript
 
@@ -61,25 +225,60 @@ npm run check-types
 
 ### Running Locally
 
-Run the function server in insecure mode for local testing:
+After compiling the source code, the function can be run locally for 
+testing with `crossplane render` either directly via `node` or via `npm`:
 
 ```bash
 node dist/main.js --insecure --debug
 ```
 
+Using `npm run`:
+
+```bash
+npm run local
+```
+
+Combining these commands to run a clean build:
+
+```shell
+npm run clean && npm run tsgo && npm run local
+```
+
+The function must be shut down using before running locally again.
+
 ### Available CLI Options
+
+The function supports several CLI options:
 
 - `--address` - Address to listen for gRPC connections (default: `0.0.0.0:9443`)
 - `-d, --debug` - Enable debug logging
 - `--insecure` - Run without mTLS credentials (for local development)
 - `--tls-server-certs-dir` - Directory containing mTLS certificates (default: `/tls/server`)
 
-## Docker Build
+## Packaging the Function and the Configuration
 
-Build the container image:
+Scripts are provided to build Crossplane packages for the Function and the Configuration
+that uses the function.
+
+The [`env`](env) file contains environment variable to set the version and Docker repository.
+
+### Function
+
+The function runs as a Kubernetes pod, which requires a docker image.
+
+#### Function Docker Build
+
+The function package runs in a Docker/OCI image. To create a multi-platform image, run
+via npm or the shell script directly:
 
 ```bash
-docker build -t function-template-typescript .
+npm run function-docker-build 
+```
+
+or:
+
+```bash
+scripts/function-docker-build.sh
 ```
 
 The Dockerfile uses a multi-stage build:
@@ -87,156 +286,82 @@ The Dockerfile uses a multi-stage build:
 1. **Build stage**: Uses `node:25` to install dependencies and compile TypeScript
 2. **Runtime stage**: Uses `gcr.io/distroless/nodejs24-debian12` for a minimal, secure runtime
 
-## Examples
+The images will be saved in the `_build/docker` directory:
 
-### Basic App Example
-
-The [examples/basic-app](examples/basic-app) directory contains a complete example that demonstrates building a real-world Crossplane function. This example creates Kubernetes application resources (Deployments, Services, ServiceAccounts, and Ingress) based on a simplified API specification.
-
-**Key Features:**
-
-- Direct usage of `kubernetes-models` for type-safe resource creation
-- Generates multiple related Kubernetes resources from a single composite resource
-- Includes complete Crossplane configuration (XRD, Composition, and example claims)
-- Demonstrates building and packaging functions as Crossplane packages (xpkg)
-- Shows integration with `function-auto-ready` for resource readiness checks
-
-**What You'll Learn:**
-- Creating Kubernetes resources using `kubernetes-models` classes
-- Working with composite resource specifications
-- Conditional resource generation based on input parameters
-- Building and deploying production-ready Crossplane functions
-- Creating Crossplane packages for distribution
-
-See the [basic-app README](examples/basic-app/README.md) for detailed instructions on building, testing, and deploying this example.
-
-## Implementation Guide
-
-### Creating Your Function
-
-Edit `fn.ts` to implement your function logic. The main interface is:
-
-```typescript
-export class Function implements FunctionHandler {
-    async RunFunction(
-        req: RunFunctionRequest,
-        logger?: Logger,
-    ): Promise<RunFunctionResponse> {
-        // Your function logic here
-    }
-}
+```bash
+$ ls -al _build/docker_images 
+configuration-aws-network-ts-function-runtime-amd64-v0.0.7.tar
+configuration-aws-network-ts-function-runtime-arm64-v0.0.7.tar
 ```
 
-### Key SDK Functions
+#### Function Crossplane Package Build
 
-The SDK provides helper functions for working with Crossplane resources:
+Now that docker images have been created, build the Crossplane function packages.
 
-- `getObservedCompositeResource(req)` - Get the observed composite resource (XR)
-- `getDesiredCompositeResource(req)` - Get the desired composite resource
-- `getObservedComposedResources(req)` - Get observed composed resources
-- `getDesiredComposedResources(req)` - Get desired composed resources
-- `setDesiredComposedResources(rsp, resources)` - Set desired composed resources
-- `Resource.fromJSON()` - Create resources from JSON
-- `normal(rsp, message)` - Add a normal condition to the response
-- `fatal(rsp, message)` - Add a fatal condition to the response
-- `to(req)` - Create a minimal response from a request
-
-### Example: Creating a Resource
-
-```typescript
-import { Resource } from "function-sdk-typescript";
-
-// Create from JSON
-const resource = Resource.fromJSON({
-    resource: {
-        apiVersion: "v1",
-        kind: "ConfigMap",
-        metadata: {
-            name: "my-config",
-            namespace: "default",
-        },
-        data: {
-            key: "value",
-        },
-    },
-});
-
-// Add to desired composed resources
-dcds["my-config"] = resource;
+```bash
+npm run function-xpkg-build 
 ```
 
-### Using Kubernetes Models
+or:
 
-The template includes [kubernetes-models](https://github.com/tommy351/kubernetes-models-ts) for type-safe K8s resource creation:
-
-```typescript
-import { Pod } from "kubernetes-models/v1";
-
-const pod = new Pod({
-    metadata: {
-        name: "my-pod",
-        namespace: "default",
-    },
-    spec: {
-        containers: [{
-            name: "app",
-            image: "nginx:latest",
-        }],
-    },
-});
-
-pod.validate(); // Validate the resource
-
-dcds["my-pod"] = Resource.fromJSON({ resource: pod.toJSON() });
+```bash
+scripts/function-xpkg-build.sh
 ```
 
-## TypeScript Configuration
+The created function images will be in the `_build/xpkg` directory:
 
-This template uses strict TypeScript settings:
+```shell
+$ ls _build/xpkg 
+configuration-aws-network-ts-function-amd64-v0.0.7.xpkg
+configuration-aws-network-ts-function-arm64-v0.0.7.xpkg
+```
 
-- `strict: true` - All strict type checking options
-- `noUncheckedIndexedAccess: true` - Safer array/object access
-- `exactOptionalPropertyTypes: true` - Stricter optional properties
-- `verbatimModuleSyntax: true` - Explicit import/export syntax
+#### Pushing the Function Package
 
-The SDK directory is excluded from compilation to avoid conflicts with different TypeScript settings.
+Push the packages to any docker registry. The registry can be changed via the [`env`](env) file:
 
-## Dependencies
+```bash
+npm run function-xpkg-push
+```
 
-### Production Dependencies
-- `function-sdk-typescript` - Crossplane function SDK (local copy)
-- `commander` - CLI argument parsing
-- `pino` - Structured logging
-- `kubernetes-models` - Type-safe Kubernetes resource models
-- `typescript` - TypeScript compiler
-- `@types/node` - Node.js type definitions
+or:
 
-### Dev Dependencies
+```bash
+scripts/function-xpkg-push.sh
+```
 
-- `@typescript/native-preview` - TypeScript native preview tooling
+### Configuration
 
-## Notes
+The Configuration Package contains the CompositeResourceDefinition, Composition, and Dependencies. Configuration
+files are located in the [`package`](package) directory.
 
-- The `function-sdk-typescript` is a private repository and must be copied locally into the project
-- The SDK directory is excluded from TypeScript compilation to prevent config conflicts
-- The Docker build includes the SDK copy in the build context
-- mTLS is enabled by default when running in production (disable with `--insecure` for local dev)
+### Configuration Package Build
 
-## Troubleshooting
+```bash
+npm run configuration-xpkg-build
+```
 
-### TypeScript Compilation Errors
+or:
 
-If you encounter TypeScript errors related to the SDK:
-1. Ensure `function-sdk-typescript` is in the exclude list in `tsconfig.json`
-2. Run `npm install` to ensure dependencies are properly linked
-3. Check that the SDK's `dist` directory contains compiled JavaScript
+```bash
+scripts/function-xpkg-build.sh
+```
 
-### Docker Build Failures
+The package will be created as `_build/xpkg/configuration-aws-network-ts-v${VERSION}.xpkg`
 
-If the Docker build fails:
-1. Ensure `function-sdk-typescript` directory exists in the project root
-2. Verify `.dockerignore` doesn't exclude the SDK directory
-3. Check that `package.json` references `file:./function-sdk-typescript`
+### Configuration Package Push
+
+Push the packages to any docker registry. The registry can be changed via the [`env`](env) file:
+
+```bash
+npm run configuration-xpkg-push
+```
+
+or:
+
+```bash
+scripts/configuration-xpkg-push.sh
+```
 
 ## License
 
@@ -244,4 +369,4 @@ Apache-2.0
 
 ## Author
 
-Steven Borrelli <steve@borrelli.org>
+Stefano Borrelli <steve@borrelli.org>
