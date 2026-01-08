@@ -164,7 +164,7 @@ kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws
 
 ## Updating the Function
 
-All the logic of the function is located in [function.ts]. This project contains Typescript types from at <https://www.npmjs.com/package/@crossplane-models/provider-upjet-aws>, which has all the resources in the 2.x upjet-based providers.
+All the logic of the function is located in [function.ts](function.ts). This project contains Typescript types from at <https://www.npmjs.com/package/@crossplane-models/provider-upjet-aws>, which has all the resources in the 2.x upjet-based providers.
 
 To create a resource:
 
