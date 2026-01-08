@@ -42,7 +42,7 @@ spec:
                           - LateInitialize
                       default: ["*"]
                     providerConfigName:
-                      description: Crossplane ProviderConfig to use for provisioning this resources
+                      description: Crossplane ProviderConfig to use for provisioning these resources
                       type: string
                       default: default
                     vpcCidrBlock:

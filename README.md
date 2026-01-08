@@ -344,7 +344,7 @@ npm run configuration-xpkg-build
 or:
 
 ```bash
-scripts/function-xpkg-build.sh
+scripts/configuration-xpkg-build.sh
 ```
 
 The package will be created as `_build/xpkg/configuration-aws-network-ts-v${VERSION}.xpkg`
