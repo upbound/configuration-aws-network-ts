@@ -1,4 +1,4 @@
-# Crossplane Function Template - TypeScript <!-- omit from toc -->
+# Crossplane AWS Network Configuration in TypeScript <!-- omit from toc -->
 
 This repository contains a Typescript implementation of [configuration-aws-network](https://github.com/upbound/configuration-aws-network), using Crossplane's [function-sdk-typescript](https://www.npmjs.com/package/@crossplane-org/function-sdk-typescript).
 

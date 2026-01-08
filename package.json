@@ -23,7 +23,7 @@
     "function-xpkg-build": "scripts/function-xpkg-build.sh",
     "function-xpkg-push": "scripts/function-xpkg-push.sh",
     "local": "node dist/main.js --insecure --debug",
-    "local-render": "crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml", 
+    "local-render": "crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "tsc": "tsc",
     "tsgo": "tsgo",
