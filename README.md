@@ -145,19 +145,34 @@ kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws
 
 ```sh
 .
-├── Dockerfile           # Dockerfile to build a runnable function
+├── Dockerfile                    # Dockerfile to build a runnable function
 ├── README.md
-├── apis                 # Crossplane XRD and Composition files
-├── dist                 # Compiled Artifacts
-├── env                  # Build Environment variables
-├── examples             # Example manifests
-├── function.ts          # Function logic
-├── jest.config.js       # Jest test config
-├── main.ts              # Set up function runtime
-├── node_modules
-├── package.json
-├── scripts             # Scripts to build and push function images
-└── tsconfig.json
+├── _build/                       # Build artifacts directory
+│   ├── docker_images/            # Built Docker images (.tar files)
+│   └── xpkg/                     # Built Crossplane packages (.xpkg files)
+├── config.yaml                   # Configuration file
+├── dist/                         # Compiled JavaScript artifacts
+├── env                           # Build environment variables
+├── examples/                     # Example manifests
+│   └── network/                  # Network example manifests
+├── function.test.ts              # Function unit tests
+├── function.ts                   # Function logic
+├── jest.config.js                # Jest test configuration
+├── main.ts                       # Function runtime setup
+├── package/                      # Configuration package files
+│   ├── apis/                     # Crossplane XRD and Composition files
+│   │   └── network/              # Network API definitions
+│   └── crossplane.yaml           # Configuration package metadata
+├── package-function/             # Function package files
+│   └── crossplane.yaml           # Function package metadata
+├── package.json                  # NPM dependencies and scripts
+├── scripts/                      # Build and push scripts
+│   ├── configuration-xpkg-build.sh
+│   ├── configuration-xpkg-push.sh
+│   ├── function-docker-build.sh
+│   ├── function-xpkg-build.sh
+│   └── function-xpkg-push.sh
+└── tsconfig.json                 # TypeScript configuration
 ```
 
 ## Development
