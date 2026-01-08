@@ -2,7 +2,7 @@
 apiVersion: pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
-  name: upboundcare-configuration-aws-network-ts
+  name: upboundcare-configuration-aws-network-ts-function
   annotations:
     # This tells crossplane beta render to connect to the function locally.
     render.crossplane.io/runtime: Development

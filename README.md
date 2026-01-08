@@ -15,6 +15,7 @@ This repository contains a Typescript implementation of [configuration-aws-netwo
   - [Build TypeScript](#build-typescript)
   - [Type Checking](#type-checking)
   - [Running Locally](#running-locally)
+  - [Crossplane Render](#crossplane-render)
   - [Available CLI Options](#available-cli-options)
 - [Packaging the Function and the Configuration](#packaging-the-function-and-the-configuration)
   - [Function](#function)
@@ -218,7 +219,7 @@ const vpc = new VPC({
 
 ### Build TypeScript
 
-Compile TypeScript to JavaScript:
+Compile TypeScript to JavaScript. The compiled files will be written to the [`dist`](dist) directory.
 
 ```bash
 npm run tsc
@@ -240,7 +241,7 @@ npm run check-types
 
 ### Running Locally
 
-After compiling the source code, the function can be run locally for 
+After compiling the source code, the function can be run locally for
 testing with `crossplane render` either directly via `node` or via `npm`:
 
 ```bash
@@ -260,6 +261,26 @@ npm run clean && npm run tsgo && npm run local
 ```
 
 The function must be shut down using before running locally again.
+
+### Crossplane Render
+
+The `crossplane render` command allows developers to generate function outputs. The
+function can be run as a local process running on port 9443, `crossplane render` can
+connect to this port and invoke the function.
+
+After running `npm local` in one terminal to start the local process, run the
+following to render a manifest:
+
+```sh
+npm run local-render
+```
+
+or run `crossplane render` directly:
+
+```sh
+crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml 
+
+```
 
 ### Available CLI Options
 
