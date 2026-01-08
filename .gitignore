@@ -12,3 +12,6 @@ _build
 
 # AI Helpers
 .claude
+
+# AWS Secrets
+creds.conf

@@ -8,3 +8,6 @@ _build
 .tar
 .xpkg
 .gz
+
+# AWS Secrets
+creds.conf

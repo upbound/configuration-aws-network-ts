@@ -1,7 +1,7 @@
 {
-  "name": "function-template-typescript",
+  "name": "configuration-aws-network",
   "version": "0.1.0",
-  "description": "Template for Crossplane function in Typescript",
+  "description": "Configuration AWS Network in Typescript",
   "keywords": [
     "crossplane",
     "typescript",
@@ -9,28 +9,38 @@
   ],
   "repository": {
     "type": "git",
-    "url": "github.com/upbound/function-template-typescript"
+    "url": "github.com/upbound/configuration-aws-network-ts"
   },
   "license": "Apache-2.0",
-  "author": "Steven Borrelli <steve@borrelli.org>",
+  "author": "Stefano Borrelli <steve@borrelli.org>",
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "docker-build": "docker-build -t function-template-typescript .",
+    "clean": "rm -rf dist/* _build/*",
+    "configuration-xpkg-build": "scripts/configuration-xpkg-build.sh",
+    "configuration-xpkg-push": "scripts/configuration-xpkg-push.sh",
+    "function-docker-build": "scripts/function-docker-build.sh",
+    "function-xpkg-build": "scripts/function-xpkg-build.sh",
+    "function-xpkg-push": "scripts/function-xpkg-push.sh",
     "local": "node dist/main.js --insecure --debug",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "tsc": "tsc",
     "tsgo": "tsgo",
     "check-types": "tsgo --noEmit"
   },
   "dependencies": {
+    "@crossplane-models/provider-upjet-aws": "^2.3.0-build.1",
+    "@crossplane-org/function-sdk-typescript": "^0.1.0",
     "@types/node": "^24.10.1",
     "commander": "^12.0.0",
-    "function-sdk-typescript": "file:./function-sdk-typescript",
     "kubernetes-models": "^4.5.1",
     "pino": "^10.1.0",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev.20251202.1"
+    "@types/jest": "^30.0.0",
+    "@typescript/native-preview": "^7.0.0-dev.20251202.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6"
   }
 }

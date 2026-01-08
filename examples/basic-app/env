@@ -1,8 +1,0 @@
-VERSION=0.0.2
-FN_NAME=function-basic-app
-XPKG_REPO=index.docker.io/steve
-
-BUILD_PLATFORMS="amd64 arm64"
-BUILD_DIR=_build
-DOCKER_IMAGE_DIR=${BUILD_DIR}/docker_images
-XPKG_DIR=${BUILD_DIR}/xpkg

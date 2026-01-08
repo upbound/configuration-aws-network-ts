@@ -1,22 +1,34 @@
 import {
+    fatal,
+    type FunctionHandler,
+    getDesiredComposedResources,
+    getDesiredCompositeResource,
+    getObservedComposedResources,
+    getObservedCompositeResource,
+    type Logger,
+    normal,
     Resource,
     RunFunctionRequest,
     RunFunctionResponse,
-    fatal,
-    normal,
     setDesiredComposedResources,
+    setDesiredCompositeStatus,
     to,
-    getDesiredComposedResources,
-    getDesiredCompositeResource,
-    getObservedCompositeResource,
-    type FunctionHandler,
-    type Logger,
-} from "function-sdk-typescript";
-import { Pod } from "kubernetes-models/v1";
+} from "@crossplane-org/function-sdk-typescript";
+import {
+    InternetGateway,
+    MainRouteTableAssociation,
+    Route,
+    RouteTable,
+    RouteTableAssociation,
+    SecurityGroup,
+    SecurityGroupRule,
+    Subnet,
+    VPC,
+} from "@crossplane-models/provider-upjet-aws/ec2.aws.m.upbound.io/v1beta1";
 
 /**
- * Function is a sample implementation showing how to use the SDK
- * This creates a Deployment and Pod as example resources
+ * Function creates AWS network infrastructure including VPC, subnets,
+ * route tables, internet gateway, and security groups
  */
 export class Function implements FunctionHandler {
     async RunFunction(
@@ -30,76 +42,356 @@ export class Function implements FunctionHandler {
 
         try {
             // Get our Observed Composite
-            const oxr = getObservedCompositeResource(req);
-            logger?.debug({ oxr }, "Observed composite resource");
+            const observedComposite = getObservedCompositeResource(req);
+            logger?.debug(
+                { oxr: observedComposite },
+                "Observed composite resource",
+            );
 
             // Get our Desired Composite
-            const dxr = getDesiredCompositeResource(req);
-            logger?.debug({ dxr }, "Desired composite resource");
+            const desiredComposite = getDesiredCompositeResource(req);
+            logger?.debug(
+                { dxr: desiredComposite },
+                "Desired composite resource",
+            );
 
-            // List the Desired Composed resources
-            let dcds = getDesiredComposedResources(req);
+            // Desired and ObservedComposed resources
+            let desiredComposed = getDesiredComposedResources(req);
+            let observedComposed = getObservedComposedResources(req);
 
-            // Create resource from a JSON object
-            dcds["deployment"] = Resource.fromJSON({
-                resource: {
-                    apiVersion: "apps/v1",
-                    kind: "Deployment",
-                    metadata: {
-                        name: "my-deployment",
-                        namespace: "foo",
-                    },
-                    spec: {
-                        replicas: 3,
-                        selector: {
-                            matchLabels: {
-                                app: "my-app",
-                            },
-                        },
-                        template: {
-                            metadata: {
-                                labels: {
-                                    app: "my-app",
-                                },
-                            },
-                            spec: {
-                                containers: [
-                                    {
-                                        name: "my-container",
-                                        image: "my-image:latest",
-                                        ports: [
-                                            {
-                                                containerPort: 80,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        },
-                    },
+            const namespace = observedComposite?.resource?.metadata?.namespace;
+            const region = observedComposite?.resource?.spec?.parameters
+                ?.region;
+            const id = observedComposite?.resource?.spec?.parameters?.id;
+            const subnets = observedComposite?.resource?.spec?.parameters
+                ?.subnets;
+
+            // Collect resource status
+            const securityGroupIds: string[] = [];
+            const privateSubnetIds: string[] = [];
+            const publicSubnetIds: string[] = [];
+            const subnetIds: string[] = [];
+
+            // Common metadata for all resources
+            const commonMetadata = {
+                ...(namespace && { namespace: namespace }),
+                labels: {
+                    "networks.aws.platform.upbound.io/network-id":
+                        observedComposite?.resource?.spec?.parameters.id,
                 },
-            });
+            };
 
-            // Create a resource from a Model at https://github.com/tommy351/kubernetes-models-ts
-            const pod = new Pod({
+            // common spec fields
+            const commonSpec = {
+                managementPolicies:
+                    observedComposite?.resource?.spec?.parameters
+                        ?.managementPolicies || ["*"],
+                providerConfigRef: {
+                    kind: "ProviderConfig",
+                    name: observedComposite?.resource?.spec?.parameters
+                        ?.providerConfigName || "default",
+                },
+            };
+
+            const vpc = new VPC({
                 metadata: {
-                    name: "pod",
-                    namespace: "default",
+                    ...commonMetadata,
                 },
                 spec: {
-                    containers: [],
+                    ...commonSpec,
+                    forProvider: {
+                        cidrBlock: observedComposite?.resource?.spec?.parameters
+                            ?.vpcCidrBlock,
+                        enableDnsHostnames: true,
+                        enableDnsSupport: true,
+                        region: region,
+                        tags: {
+                            Name: observedComposite?.resource?.metadata?.name,
+                        },
+                    },
                 },
             });
 
-            pod.validate();
+            vpc.validate();
 
-            dcds["pod"] = Resource.fromJSON({ resource: pod.toJSON() });
+            desiredComposed["vpc"] = Resource.fromJSON({
+                resource: vpc.toJSON(),
+            });
 
-            // Merge dcds with existing resources using the response helper
-            rsp = setDesiredComposedResources(rsp, dcds);
+            const igw = new InternetGateway({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        region: region,
+                        vpcIdSelector: {
+                            matchControllerRef: true,
+                        },
+                    },
+                },
+            });
+
+            igw.validate();
+            desiredComposed["igw"] = Resource.fromJSON({
+                resource: igw.toJSON(),
+            });
+
+            // create Subnets and RouteTableAssociations for each subnet
+            for (var subnet of subnets) {
+                const name = formatSubnetName({
+                    availabilityZone: subnet.availabilityZone,
+                    cidr: subnet.cidrBlock,
+                    type: subnet.type,
+                });
+                const s = new Subnet({
+                    metadata: {
+                        ...commonMetadata,
+                        labels: {
+                            access: subnet?.type || "private",
+                            zone: subnet?.availabilityZone,
+                            "networks.aws.platform.upbound.io/network-id": id,
+                        },
+                    },
+                    spec: {
+                        ...commonSpec,
+                        forProvider: {
+                            availabilityZone: subnet?.availabilityZone,
+                            cidrBlock: subnet?.cidrBlock,
+                            mapPublicIpOnLaunch: (subnet?.type === "public"),
+                            region: region,
+                            tags: {
+                                ...(subnet?.type === "private"
+                                    ? { "kubernetes.io/role/internal-elb": "1" }
+                                    : {
+                                        "kubernetes.io/role/elb": "1",
+                                        "networks.aws.platform.upbound.io/network-id":
+                                            observedComposite?.resource?.spec
+                                                ?.parameters.id,
+                                    }),
+                            },
+                            vpcIdSelector: {
+                                matchControllerRef: true,
+                            },
+                        },
+                    },
+                });
+                s.validate();
+                const subnetKey = "subnet-" + name;
+                desiredComposed[subnetKey] = Resource.fromJSON({
+                    resource: s.toJSON(),
+                });
+
+
+                const subnetId = observedComposed?.[subnetKey]?.resource?.status
+                    ?.atProvider?.id;
+                if (subnetId) {
+                    subnetIds.push(subnetId);
+                    if (subnet.type === "public") {
+                        publicSubnetIds.push(subnetId);
+                    } else if (subnet.type === "private") {
+                        privateSubnetIds.push(subnetId);
+                    }
+                }
+                const rta = new RouteTableAssociation({
+                    metadata: {
+                        ...commonMetadata,
+                    },
+                    spec: {
+                        ...commonSpec,
+                        forProvider: {
+                            region: region,
+                            routeTableIdSelector: {
+                                matchControllerRef: true,
+                            },
+                            subnetIdSelector: {
+                                matchControllerRef: true,
+                                matchLabels: {
+                                    "access": (subnet?.type === "private")
+                                        ? "private"
+                                        : "public",
+                                    "zone": subnet?.availabilityZone,
+                                },
+                            },
+                        },
+                    },
+                });
+                rta.validate();
+                desiredComposed["rta-" + name] = Resource.fromJSON({
+                    resource: rta.toJSON(),
+                });
+            }
+
+            const rt = new RouteTable({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        region: region,
+                        vpcIdSelector: {
+                            matchControllerRef: true,
+                        },
+                    },
+                },
+            });
+
+            rt.validate();
+            desiredComposed["rt"] = Resource.fromJSON({
+                resource: rt.toJSON(),
+            });
+
+            const mrta = new MainRouteTableAssociation({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        region: region,
+                        routeTableIdSelector: {
+                            matchControllerRef: true,
+                        },
+                        vpcIdSelector: {
+                            matchControllerRef: true,
+                        },
+                    },
+                },
+            });
+
+            mrta.validate();
+            desiredComposed["mrta"] = Resource.fromJSON({
+                resource: mrta.toJSON(),
+            });
+
+            const route = new Route({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        destinationCidrBlock: "0.0.0.0/0",
+                        region: region,
+                        gatewayIdSelector: {
+                            matchControllerRef: true,
+                        },
+                        routeTableIdSelector: {
+                            matchControllerRef: true,
+                        },
+                    },
+                },
+            });
+
+            route.validate();
+            desiredComposed["route"] = Resource.fromJSON({
+                resource: route.toJSON(),
+            });
+
+            // These should probably be moved to configuration-aws-database
+            const sg = new SecurityGroup({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        name: "platform-ref-aws-cluster",
+                        description: "Allow access to databases",
+                        region: region,
+                        vpcIdSelector: {
+                            matchControllerRef: true,
+                        },
+                    },
+                },
+            });
+
+            sg.validate();
+            desiredComposed["sg"] = Resource.fromJSON({
+                resource: sg.toJSON(),
+            });
+
+            const sgrPostgres = new SecurityGroupRule({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        cidrBlocks: [
+                            "0.0.0.0/0",
+                        ],
+                        fromPort: 5432,
+                        description: "Everywhere",
+                        securityGroupIdSelector: {
+                            matchControllerRef: true,
+                        },
+                        protocol: "tcp",
+                        region: region,
+                        toPort: 5432,
+                        type: "ingress",
+                    },
+                },
+            });
+            sgrPostgres.validate();
+            desiredComposed["sgr-postgres"] = Resource.fromJSON({
+                resource: sgrPostgres.toJSON(),
+            });
+
+            const sgrMysql = new SecurityGroupRule({
+                metadata: {
+                    ...commonMetadata,
+                },
+                spec: {
+                    ...commonSpec,
+                    forProvider: {
+                        cidrBlocks: [
+                            "0.0.0.0/0",
+                        ],
+                        fromPort: 3306,
+                        description: "Everywhere",
+                        securityGroupIdSelector: {
+                            matchControllerRef: true,
+                        },
+                        protocol: "tcp",
+                        region: region,
+                        toPort: 3306,
+                        type: "ingress",
+                    },
+                },
+            });
+            sgrMysql.validate();
+            desiredComposed["sgr-mysql"] = Resource.fromJSON({
+                resource: sgrMysql.toJSON(),
+            });
+
+            // set the desired composed resources
+            rsp = setDesiredComposedResources(rsp, desiredComposed);
+
+            const vpcId = observedComposed?.vpc?.resource?.status?.atProvider
+                ?.id;
+            observedComposed?.sg?.resource?.status?.atProvider?.id &&
+                securityGroupIds.push(
+                    observedComposed.sg.resource.status.atProvider.id,
+                );
+            // update the composite status
+            const xrStatus: XRStatus = {
+                ...(privateSubnetIds.length > 0 && { privateSubnetIds }),
+                ...(publicSubnetIds.length > 0 && { publicSubnetIds }),
+                ...(securityGroupIds.length > 0 && { securityGroupIds }),
+                ...(subnetIds.length > 0 && { subnetIds }),
+                ...(vpcId && { vpcId }),
+            };
+
+            rsp = setDesiredCompositeStatus({ rsp, status: xrStatus });
 
             const duration = Date.now() - startTime;
-            logger?.info({ duration: `${duration}ms` }, "Function completed successfully");
+            logger?.info(
+                { duration: `${duration}ms` },
+                "Function completed successfully",
+            );
 
             normal(rsp, "processing complete");
             return rsp;
@@ -114,4 +406,28 @@ export class Function implements FunctionHandler {
             return rsp;
         }
     }
+}
+
+// Status fields for an XR
+interface XRStatus {
+    [key: string]: any;
+}
+
+// converts a CIDR into a string usable in a composed resource name
+// 1.2.3.4/32 -> 1-2-3-4-32
+export function formatCIDR(cidr: string): string {
+    return cidr.replace(/[\.|\/]/g, "-");
+}
+
+interface SubnetSettings {
+    availabilityZone: string;
+    cidr: string;
+    type: string;
+}
+
+// formatSubnetName generates a name based on Availability Zone, CIDR, and type like us-west-2b-192-168-64-0-18-public
+export function formatSubnetName(subnet: SubnetSettings): string {
+    return `${subnet?.availabilityZone}-${
+        formatCIDR(subnet.cidr)
+    }-${subnet?.type}`;
 }
