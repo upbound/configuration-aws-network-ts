@@ -51,6 +51,7 @@ spec:
                       default: 192.168.0.0/16
                     subnets:
                       type: array
+                      description: Subnets to create in the VPC
                       items:
                         type: object
                         properties:
@@ -63,11 +64,10 @@ spec:
                               - private
                           cidrBlock:
                             type: string
-                      description: Subnets to create in the VPC
-                      required:
-                        - availabilityZone
-                        - type
-                        - cidrBlock
+                        required:
+                          - availabilityZone
+                          - type
+                          - cidrBlock
                       default:
                         - availabilityZone: us-west-2a
                           type: public
