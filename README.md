@@ -268,7 +268,7 @@ The `crossplane render` command allows developers to generate function outputs. 
 function can be run as a local process running on port 9443, `crossplane render` can
 connect to this port and invoke the function.
 
-After running `npm local` in one terminal to start the local process, run the
+After running `npm run local` in one terminal to start the local process, run the
 following to render a manifest:
 
 ```sh
