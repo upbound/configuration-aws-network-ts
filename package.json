@@ -1,7 +1,7 @@
 {
-  "name": "function-template-typescript",
+  "name": "configuration-aws-network",
   "version": "0.1.0",
-  "description": "Template for Crossplane function in Typescript",
+  "description": "Configuration AWS Network in Typescript",
   "keywords": [
     "crossplane",
     "typescript",
@@ -9,10 +9,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "github.com/upbound/function-template-typescript"
+    "url": "github.com/upbound/configuration-aws-network-ts"
   },
   "license": "Apache-2.0",
-  "author": "Steven Borrelli <steve@borrelli.org>",
+  "author": "Stefano Borrelli <steve@borrelli.org>",
   "type": "module",
   "main": "main.js",
   "scripts": {

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./env
+source ./env
 
 set -xe
 

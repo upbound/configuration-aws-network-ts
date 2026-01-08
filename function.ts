@@ -27,8 +27,8 @@ import {
 } from "@crossplane-models/provider-upjet-aws/ec2.aws.m.upbound.io/v1beta1";
 
 /**
- * Function is a sample implementation showing how to use the SDK
- * This creates a Deployment and Pod as example resources
+ * Function creates AWS network infrastructure including VPC, subnets,
+ * route tables, internet gateway, and security groups
  */
 export class Function implements FunctionHandler {
     async RunFunction(
