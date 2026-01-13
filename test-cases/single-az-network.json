@@ -1,0 +1,96 @@
+{
+  "name": "Single AZ Network Configuration",
+  "description": "Test network configuration with only one availability zone",
+  "input": {
+    "observed": {
+      "composite": {
+        "resource": {
+          "apiVersion": "aws.platform.upbound.io/v1alpha1",
+          "kind": "Network",
+          "metadata": {
+            "name": "single-az-network",
+            "namespace": "network-team"
+          },
+          "spec": {
+            "parameters": {
+              "id": "single-az-network",
+              "region": "us-east-1",
+              "vpcCidrBlock": "10.0.0.0/16",
+              "subnets": [
+                {
+                  "availabilityZone": "us-east-1a",
+                  "type": "public",
+                  "cidrBlock": "10.0.0.0/24"
+                },
+                {
+                  "availabilityZone": "us-east-1a",
+                  "type": "private",
+                  "cidrBlock": "10.0.1.0/24"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "expected": {
+    "resourceCount": 12,
+    "resourceTypes": [
+      "VPC",
+      "InternetGateway",
+      "RouteTable",
+      "Subnet",
+      "SecurityGroup",
+      "SecurityGroupRule"
+    ],
+    "resources": {
+      "vpc": {
+        "kind": "VPC",
+        "apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+        "spec": {
+          "forProvider": {
+            "cidrBlock": "10.0.0.0/16",
+            "region": "us-east-1"
+          }
+        }
+      },
+      "subnet-us-east-1a-10-0-0-0-24-public": {
+        "kind": "Subnet",
+        "apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+        "metadata": {
+          "labels": {
+            "access": "public",
+            "zone": "us-east-1a"
+          }
+        },
+        "spec": {
+          "forProvider": {
+            "availabilityZone": "us-east-1a",
+            "cidrBlock": "10.0.0.0/24",
+            "mapPublicIpOnLaunch": true,
+            "region": "us-east-1"
+          }
+        }
+      },
+      "subnet-us-east-1a-10-0-1-0-24-private": {
+        "kind": "Subnet",
+        "apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+        "metadata": {
+          "labels": {
+            "access": "private",
+            "zone": "us-east-1a"
+          }
+        },
+        "spec": {
+          "forProvider": {
+            "availabilityZone": "us-east-1a",
+            "cidrBlock": "10.0.1.0/24",
+            "mapPublicIpOnLaunch": false,
+            "region": "us-east-1"
+          }
+        }
+      }
+    }
+  }
+}

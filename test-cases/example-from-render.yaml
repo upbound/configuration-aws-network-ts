@@ -1,0 +1,201 @@
+name: Example from npm run local-render
+description: |
+  Test case matching the exact output from running:
+  npm run local-render
+
+  This validates the complete output including all resources created
+  for the standard example configuration.
+input:
+  observed:
+    composite:
+      resource:
+        apiVersion: aws.platform.upbound.io/v1alpha1
+        kind: Network
+        metadata:
+          name: configuration-aws-network
+          namespace: network-team
+        spec:
+          parameters:
+            id: configuration-aws-network
+            region: us-west-2
+            vpcCidrBlock: 192.168.0.0/16
+            subnets:
+              - availabilityZone: us-west-2a
+                type: public
+                cidrBlock: 192.168.0.0/18
+              - availabilityZone: us-west-2b
+                type: public
+                cidrBlock: 192.168.64.0/18
+              - availabilityZone: us-west-2a
+                type: private
+                cidrBlock: 192.168.128.0/18
+              - availabilityZone: us-west-2b
+                type: private
+                cidrBlock: 192.168.192.0/18
+expected:
+  resourceCount: 16
+  resourceTypes:
+    - VPC
+    - InternetGateway
+    - RouteTable
+    - MainRouteTableAssociation
+    - Route
+    - Subnet
+    - RouteTableAssociation
+    - SecurityGroup
+    - SecurityGroupRule
+  resources:
+    vpc:
+      kind: VPC
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        namespace: network-team
+        labels:
+          networks.aws.platform.upbound.io/network-id: configuration-aws-network
+      spec:
+        forProvider:
+          cidrBlock: 192.168.0.0/16
+          enableDnsHostnames: true
+          enableDnsSupport: true
+          region: us-west-2
+          tags:
+            Name: configuration-aws-network
+        managementPolicies:
+          - "*"
+        providerConfigRef:
+          kind: ProviderConfig
+          name: default
+    igw:
+      kind: InternetGateway
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+    rt:
+      kind: RouteTable
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+    mrta:
+      kind: MainRouteTableAssociation
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+    route:
+      kind: Route
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          destinationCidrBlock: 0.0.0.0/0
+    subnet-us-west-2a-192-168-0-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2a
+          networks.aws.platform.upbound.io/network-id: configuration-aws-network
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.0.0/18
+          mapPublicIpOnLaunch: true
+          region: us-west-2
+          tags:
+            kubernetes.io/role/elb: "1"
+            networks.aws.platform.upbound.io/network-id: configuration-aws-network
+    subnet-us-west-2b-192-168-64-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2b
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.64.0/18
+          mapPublicIpOnLaunch: true
+    subnet-us-west-2a-192-168-128-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2a
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.128.0/18
+          mapPublicIpOnLaunch: false
+          tags:
+            kubernetes.io/role/internal-elb: "1"
+    subnet-us-west-2b-192-168-192-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2b
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.192.0/18
+          mapPublicIpOnLaunch: false
+    rta-us-west-2a-192-168-0-0-18-public:
+      kind: RouteTableAssociation
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          subnetIdSelector:
+            matchLabels:
+              access: public
+              zone: us-west-2a
+    rta-us-west-2b-192-168-64-0-18-public:
+      kind: RouteTableAssociation
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          subnetIdSelector:
+            matchLabels:
+              access: public
+              zone: us-west-2b
+    rta-us-west-2a-192-168-128-0-18-private:
+      kind: RouteTableAssociation
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          subnetIdSelector:
+            matchLabels:
+              access: private
+              zone: us-west-2a
+    rta-us-west-2b-192-168-192-0-18-private:
+      kind: RouteTableAssociation
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          subnetIdSelector:
+            matchLabels:
+              access: private
+              zone: us-west-2b
+    sg:
+      kind: SecurityGroup
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          name: platform-ref-aws-cluster
+          description: Allow access to databases
+    sgr-postgres:
+      kind: SecurityGroupRule
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          fromPort: 5432
+          toPort: 5432
+          protocol: tcp
+          type: ingress
+    sgr-mysql:
+      kind: SecurityGroupRule
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          fromPort: 3306
+          toPort: 3306

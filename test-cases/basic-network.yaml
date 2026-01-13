@@ -1,0 +1,187 @@
+---
+name: Basic Network Configuration
+description: Test basic AWS network configuration with VPC, subnets, and security groups
+
+input:
+  observed:
+    composite:
+      resource:
+        apiVersion: aws.platform.upbound.io/v1alpha1
+        kind: Network
+        metadata:
+          name: configuration-aws-network
+          namespace: network-team
+        spec:
+          parameters:
+            id: configuration-aws-network
+            region: us-west-2
+            vpcCidrBlock: 192.168.0.0/16
+            subnets:
+              - availabilityZone: us-west-2a
+                type: public
+                cidrBlock: 192.168.0.0/18
+              - availabilityZone: us-west-2b
+                type: public
+                cidrBlock: 192.168.64.0/18
+              - availabilityZone: us-west-2a
+                type: private
+                cidrBlock: 192.168.128.0/18
+              - availabilityZone: us-west-2b
+                type: private
+                cidrBlock: 192.168.192.0/18
+
+expected:
+  resourceCount: 16
+  resourceTypes:
+    - VPC
+    - InternetGateway
+    - RouteTable
+    - MainRouteTableAssociation
+    - Route
+    - Subnet
+    - RouteTableAssociation
+    - SecurityGroup
+    - SecurityGroupRule
+
+  resources:
+    vpc:
+      kind: VPC
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        namespace: network-team
+        labels:
+          networks.aws.platform.upbound.io/network-id: configuration-aws-network
+      spec:
+        forProvider:
+          cidrBlock: 192.168.0.0/16
+          enableDnsHostnames: true
+          enableDnsSupport: true
+          region: us-west-2
+          tags:
+            Name: configuration-aws-network
+
+    igw:
+      kind: InternetGateway
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        namespace: network-team
+      spec:
+        forProvider:
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+
+    rt:
+      kind: RouteTable
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        namespace: network-team
+      spec:
+        forProvider:
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+
+    route:
+      kind: Route
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          destinationCidrBlock: 0.0.0.0/0
+          region: us-west-2
+          gatewayIdSelector:
+            matchControllerRef: true
+          routeTableIdSelector:
+            matchControllerRef: true
+
+    subnet-us-west-2a-192-168-0-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2a
+          networks.aws.platform.upbound.io/network-id: configuration-aws-network
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.0.0/18
+          mapPublicIpOnLaunch: true
+          region: us-west-2
+
+    subnet-us-west-2b-192-168-64-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2b
+          networks.aws.platform.upbound.io/network-id: configuration-aws-network
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.64.0/18
+          mapPublicIpOnLaunch: true
+          region: us-west-2
+
+    subnet-us-west-2a-192-168-128-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2a
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.128.0/18
+          mapPublicIpOnLaunch: false
+          region: us-west-2
+
+    subnet-us-west-2b-192-168-192-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2b
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.192.0/18
+          mapPublicIpOnLaunch: false
+          region: us-west-2
+
+    sg:
+      kind: SecurityGroup
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          name: platform-ref-aws-cluster
+          description: Allow access to databases
+          region: us-west-2
+
+    sgr-postgres:
+      kind: SecurityGroupRule
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          cidrBlocks:
+            - 0.0.0.0/0
+          fromPort: 5432
+          toPort: 5432
+          protocol: tcp
+          type: ingress
+          description: Everywhere
+
+    sgr-mysql:
+      kind: SecurityGroupRule
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          cidrBlocks:
+            - 0.0.0.0/0
+          fromPort: 3306
+          toPort: 3306
+          protocol: tcp
+          type: ingress
