@@ -1,4 +1,4 @@
-VERSION=0.0.8
+VERSION=0.0.20
 CONFIGURATION_NAME=configuration-aws-network-ts
 FN_NAME=${CONFIGURATION_NAME}-function
 

@@ -1,0 +1,260 @@
+name: Network with Observed Resource Status
+description: |
+  Test that the function correctly propagates status from observed resources
+  to the composite resource status.
+
+  This matches the test from:
+  https://github.com/upbound/configuration-aws-network/blob/main/tests/test-network-status/main.k
+
+  Simulates AWS resources that have been created and have their
+  status.atProvider.id fields populated by the provider.
+
+input:
+  observed:
+    composite:
+      resource:
+        apiVersion: aws.platform.upbound.io/v1alpha1
+        kind: Network
+        metadata:
+          name: configuration-aws-network
+          namespace: network-team
+        spec:
+          parameters:
+            id: configuration-aws-network
+            region: us-west-2
+            vpcCidrBlock: 192.168.0.0/16
+            subnets:
+              - availabilityZone: us-west-2a
+                type: public
+                cidrBlock: 192.168.0.0/18
+              - availabilityZone: us-west-2b
+                type: public
+                cidrBlock: 192.168.64.0/18
+              - availabilityZone: us-west-2a
+                type: private
+                cidrBlock: 192.168.128.0/18
+              - availabilityZone: us-west-2b
+                type: private
+                cidrBlock: 192.168.192.0/18
+
+    resources:
+      vpc:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: VPC
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: vpc
+            name: configuration-aws-network-vpc-xyz123
+            namespace: network-team
+          spec:
+            forProvider:
+              cidrBlock: 192.168.0.0/16
+              enableDnsHostnames: true
+              enableDnsSupport: true
+              region: us-west-2
+          status:
+            atProvider:
+              id: vpc-091a39902df7a340a
+
+      sg:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: SecurityGroup
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: sg
+            name: configuration-aws-network-sg-abc456
+            namespace: network-team
+          spec:
+            forProvider:
+              name: platform-ref-aws-cluster
+              description: Allow access to databases
+              region: us-west-2
+          status:
+            atProvider:
+              id: sg-0be55443dc4247834
+
+      subnet-us-west-2a-192-168-0-0-18-public:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: subnet-us-west-2a-192-168-0-0-18-public
+            name: configuration-aws-network-subnet-pub-a-def789
+            namespace: network-team
+            labels:
+              access: public
+              zone: us-west-2a
+          spec:
+            forProvider:
+              availabilityZone: us-west-2a
+              cidrBlock: 192.168.0.0/18
+              mapPublicIpOnLaunch: true
+              region: us-west-2
+          status:
+            atProvider:
+              id: subnet-0775f953a8271ef84
+
+      subnet-us-west-2b-192-168-64-0-18-public:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: subnet-us-west-2b-192-168-64-0-18-public
+            name: configuration-aws-network-subnet-pub-b-ghi012
+            namespace: network-team
+            labels:
+              access: public
+              zone: us-west-2b
+          spec:
+            forProvider:
+              availabilityZone: us-west-2b
+              cidrBlock: 192.168.64.0/18
+              mapPublicIpOnLaunch: true
+              region: us-west-2
+          status:
+            atProvider:
+              id: subnet-07a115654ea808b78
+
+      subnet-us-west-2a-192-168-128-0-18-private:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: subnet-us-west-2a-192-168-128-0-18-private
+            name: configuration-aws-network-subnet-priv-a-jkl345
+            namespace: network-team
+            labels:
+              access: private
+              zone: us-west-2a
+          spec:
+            forProvider:
+              availabilityZone: us-west-2a
+              cidrBlock: 192.168.128.0/18
+              mapPublicIpOnLaunch: false
+              region: us-west-2
+          status:
+            atProvider:
+              id: subnet-01df6730262d519b4
+
+      subnet-us-west-2b-192-168-192-0-18-private:
+        resource:
+          apiVersion: ec2.aws.m.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            annotations:
+              crossplane.io/composition-resource-name: subnet-us-west-2b-192-168-192-0-18-private
+            name: configuration-aws-network-subnet-priv-b-mno678
+            namespace: network-team
+            labels:
+              access: private
+              zone: us-west-2b
+          spec:
+            forProvider:
+              availabilityZone: us-west-2b
+              cidrBlock: 192.168.192.0/18
+              mapPublicIpOnLaunch: false
+              region: us-west-2
+          status:
+            atProvider:
+              id: subnet-0260ebe3484994e2b
+
+expected:
+  resourceCount: 16
+
+  # Expected status should match the KCL test assertResources
+  status:
+    vpcId: vpc-091a39902df7a340a
+    securityGroupIds:
+      - sg-0be55443dc4247834
+    subnetIds:
+      - subnet-0775f953a8271ef84
+      - subnet-07a115654ea808b78
+      - subnet-01df6730262d519b4
+      - subnet-0260ebe3484994e2b
+    publicSubnetIds:
+      - subnet-0775f953a8271ef84
+      - subnet-07a115654ea808b78
+    privateSubnetIds:
+      - subnet-01df6730262d519b4
+      - subnet-0260ebe3484994e2b
+
+  resources:
+    vpc:
+      kind: VPC
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          cidrBlock: 192.168.0.0/16
+          enableDnsHostnames: true
+          enableDnsSupport: true
+          region: us-west-2
+
+    sg:
+      kind: SecurityGroup
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      spec:
+        forProvider:
+          name: platform-ref-aws-cluster
+          description: Allow access to databases
+          region: us-west-2
+
+    subnet-us-west-2a-192-168-0-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2a
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.0.0/18
+          mapPublicIpOnLaunch: true
+          region: us-west-2
+
+    subnet-us-west-2b-192-168-64-0-18-public:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: public
+          zone: us-west-2b
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.64.0/18
+          mapPublicIpOnLaunch: true
+          region: us-west-2
+
+    subnet-us-west-2a-192-168-128-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2a
+      spec:
+        forProvider:
+          availabilityZone: us-west-2a
+          cidrBlock: 192.168.128.0/18
+          mapPublicIpOnLaunch: false
+          region: us-west-2
+
+    subnet-us-west-2b-192-168-192-0-18-private:
+      kind: Subnet
+      apiVersion: ec2.aws.m.upbound.io/v1beta1
+      metadata:
+        labels:
+          access: private
+          zone: us-west-2b
+      spec:
+        forProvider:
+          availabilityZone: us-west-2b
+          cidrBlock: 192.168.192.0/18
+          mapPublicIpOnLaunch: false
+          region: us-west-2

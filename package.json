@@ -22,6 +22,7 @@
     "function-docker-build": "scripts/function-docker-build.sh",
     "function-xpkg-build": "scripts/function-xpkg-build.sh",
     "function-xpkg-push": "scripts/function-xpkg-push.sh",
+    "function-build-all": "npm run function-docker-build && npm run function-xpkg-build && npm run function-xpkg-push",
     "local": "node dist/main.js --insecure --debug",
     "local-render": "crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
@@ -31,12 +32,13 @@
   },
   "dependencies": {
     "@crossplane-models/provider-upjet-aws": "^2.3.0-build.1",
-    "@crossplane-org/function-sdk-typescript": "^0.1.0",
+    "@crossplane-org/function-sdk-typescript": "^0.3.0",
     "@types/node": "^24.10.1",
     "commander": "^12.0.0",
     "kubernetes-models": "^4.5.1",
     "pino": "^10.1.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
