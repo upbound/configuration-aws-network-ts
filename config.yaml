@@ -1,6 +1,0 @@
-apiVersion: pkg.crossplane.io/v1
-kind: Configuration
-metadata:
-  name: configuration-aws-network
-spec:
-  package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.6

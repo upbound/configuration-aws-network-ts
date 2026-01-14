@@ -1,6 +1,6 @@
 {
   "name": "configuration-aws-network",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Configuration AWS Network in Typescript",
   "keywords": [
     "crossplane",
@@ -16,7 +16,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "build": "tsgo",
+    "build": "tsc",
     "clean": "rm -rf dist/* _build/*",
     "configuration-xpkg-build": "scripts/configuration-xpkg-build.sh",
     "configuration-xpkg-push": "scripts/configuration-xpkg-push.sh",
@@ -41,7 +41,8 @@
     "@types/node": "^24.10.1",
     "commander": "^12.0.0",
     "kubernetes-models": "^4.5.1",
-    "pino": "^10.1.0",
+    "pino": "^10.1.0",    
+    "typescript": "^5.9.3",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
@@ -52,7 +53,6 @@
     "jest": "^30.2.0",
     "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
-    "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
   }
 }
