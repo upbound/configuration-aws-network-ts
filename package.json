@@ -42,7 +42,6 @@
     "commander": "^12.0.0",
     "kubernetes-models": "^4.5.1",
     "pino": "^10.1.0",
-    "prettier": "^3.7.4",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
@@ -51,6 +50,7 @@
     "@typescript/native-preview": "^7.0.0-dev.20251202.1",
     "eslint": "^9.39.2",
     "jest": "^30.2.0",
+    "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"

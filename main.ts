@@ -19,7 +19,7 @@ const program = new Command();
 
 program
   .name('configuration-aws-network')
-  .option('--address', 'Address at which to listen for gRPC connections', defaultAddress)
+  .option('--address <address>', 'Address at which to listen for gRPC connections', defaultAddress)
   .option('-d, --debug', 'Emit debug logs.', false)
   .option('--insecure', 'Run without mTLS credentials.', false)
   .option(

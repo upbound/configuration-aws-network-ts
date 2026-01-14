@@ -54,7 +54,7 @@ export class Function implements FunctionHandler {
       const namespace = observedComposite?.resource?.metadata?.namespace;
       const region = observedComposite?.resource?.spec?.parameters?.region;
       const id = observedComposite?.resource?.spec?.parameters?.id;
-      const subnets = observedComposite?.resource?.spec?.parameters?.subnets;
+      const subnets = observedComposite?.resource?.spec?.parameters?.subnets || [];
 
       // Collect resource status
       const securityGroupIds: string[] = [];
