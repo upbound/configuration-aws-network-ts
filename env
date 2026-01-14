@@ -1,11 +1,10 @@
-VERSION=0.0.20
-CONFIGURATION_NAME=configuration-aws-network-ts
+VERSION=$(npm pkg get version | tr -d '"')
+CONFIGURATION_NAME=$(npm pkg get name | tr -d '"')
 FN_NAME=${CONFIGURATION_NAME}-function
 
 XPKG_REPO=xpkg.upbound.io/upboundcare
 
 BUILD_PLATFORMS="amd64 arm64"
-XPKG_PUSH_PLATFORMS=$(echo $BUILD_PLATFORMS | tr ' ' ',')
 BUILD_DIR=_build
 DOCKER_IMAGE_DIR=${BUILD_DIR}/docker_images
 XPKG_DIR=${BUILD_DIR}/xpkg

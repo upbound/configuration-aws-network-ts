@@ -3,5 +3,5 @@
 . ./env
 
 set -xe
-
-up xpkg push ${XPKG_REPO}/${FN_NAME}:v${VERSION} -f ${XPKG_DIR}/${FN_NAME}-arm64-v${VERSION}.xpkg,${XPKG_DIR}/${FN_NAME}-amd64-v${VERSION}.xpkg
+XPKG_FILES=$(echo ${XPKG_DIR}/${FN_NAME}-*-v${VERSION}.xpkg|tr ' ' ,)
+up xpkg push ${XPKG_REPO}/${FN_NAME}:v${VERSION} -f ${XPKG_FILES}
