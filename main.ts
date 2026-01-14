@@ -16,11 +16,11 @@ const defaultAddress = '0.0.0.0:9443';
 const defaultTlsServerCertsDir = '/tls/server';
 
 const program = new Command('configuration-aws-network')
-  .option('--address [address]', 'Address at which to listen for gRPC connections', defaultAddress)
+  .option('--address <address>', 'Address at which to listen for gRPC connections', defaultAddress)
   .option('-d, --debug', 'Emit debug logs.', false)
   .option('--insecure', 'Run without mTLS credentials.', false)
   .option(
-    '--tls-server-certs-dir [directory]',
+    '--tls-server-certs-dir <directory>',
     'Serve using mTLS certificates in this directory. The directory should contain tls.key, tls.crt, and ca.crt files.',
     defaultTlsServerCertsDir
   );
@@ -29,10 +29,10 @@ const program = new Command('configuration-aws-network')
 
 function parseArgs(args: OptionValues): ServerOptions {
   return {
-    address: (args.address as string | undefined) || defaultAddress,
+    address: typeof args.address === 'string' ? args.address : defaultAddress,
     debug: Boolean(args.debug),
     insecure: Boolean(args.insecure),
-    tlsServerCertsDir: (args.tlsServerCertsDir as string | undefined) || defaultTlsServerCertsDir,
+    tlsServerCertsDir: typeof args.tlsServerCertsDir === 'string' ? args.tlsServerCertsDir : defaultTlsServerCertsDir,
   };
 }
 
