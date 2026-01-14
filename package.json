@@ -1,5 +1,5 @@
 {
-  "name": "configuration-aws-network",
+  "name": "configuration-aws-network-ts",
   "version": "0.0.21",
   "description": "Configuration AWS Network in Typescript",
   "keywords": [
