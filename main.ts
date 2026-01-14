@@ -15,31 +15,29 @@ const defaultAddress = '0.0.0.0:9443';
 // defaultTlsServerCertsDir is the directory where the XP package reconciler stores generated TLS certs
 const defaultTlsServerCertsDir = '/tls/server';
 
-const program = new Command();
-
-program
-  .name('configuration-aws-network')
-  .option('--address <address>', 'Address at which to listen for gRPC connections', defaultAddress)
+const program = new Command('configuration-aws-network')
+  .option('--address [address]', 'Address at which to listen for gRPC connections', defaultAddress)
   .option('-d, --debug', 'Emit debug logs.', false)
   .option('--insecure', 'Run without mTLS credentials.', false)
   .option(
-    '--tls-server-certs-dir [Directory]',
+    '--tls-server-certs-dir [directory]',
     'Serve using mTLS certificates in this directory. The directory should contain tls.key, tls.crt, and ca.crt files.',
     defaultTlsServerCertsDir
   );
 
-program.parse(process.argv);
+// Don't parse yet - parse in main() when we're ready to use the args
 
 function parseArgs(args: OptionValues): ServerOptions {
   return {
-    address: args?.address || defaultAddress,
-    debug: args.debug,
-    insecure: args.insecure,
-    tlsServerCertsDir: args.tlsServerCertsDir,
+    address: (args.address as string | undefined) || defaultAddress,
+    debug: Boolean(args.debug),
+    insecure: Boolean(args.insecure),
+    tlsServerCertsDir: (args.tlsServerCertsDir as string | undefined) || defaultTlsServerCertsDir,
   };
 }
 
 function main() {
+  program.parse(process.argv);
   const args = program.opts();
   const opts = parseArgs(args);
 
