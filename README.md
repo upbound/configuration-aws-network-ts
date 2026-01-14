@@ -28,7 +28,6 @@ This repository contains a Typescript implementation of [configuration-aws-netwo
 - [License](#license)
 - [Author](#author)
 
-
 ## Installing and Running the Configuration and Function
 
 ### Installation of the Package
@@ -47,7 +46,7 @@ spec:
 Verify the package is healthy. If not, run `kubectl describe configuration.pkg configuration-aws-network`.
 
 ```sh
-$ kubectl get configuration.pkg  configuration-aws-network 
+$ kubectl get configuration.pkg  configuration-aws-network
 NAME                        INSTALLED   HEALTHY   PACKAGE                                                           AGE
 configuration-aws-network   True        True      xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.8   18m
 ```
@@ -85,7 +84,7 @@ The ProviderConfig sets up authentication for the resource. Since we are using a
 kubectl create ns network-team
 ```
 
-```shell 
+```shell
 $ cat <<'EOF' | kubectl apply -f -
 apiVersion: aws.m.upbound.io/v1beta1
 kind: ProviderConfig
@@ -107,7 +106,7 @@ EOF
 Now apply the example manifest at [examples/network/configuration-aws-network.yaml](examples/network/configuration-aws-network.yaml).
 
 ```shell
-$ kubectl apply -f examples/network/configuration-aws-network.yaml 
+$ kubectl apply -f examples/network/configuration-aws-network.yaml
 network.aws.platform.upbound.io/configuration-aws-network created
 ```
 
@@ -139,7 +138,7 @@ Network/configuration-aws-network (network-team)                                
 ### Deleting the Example
 
 ```shell
-kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws-network   
+kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws-network
 ```
 
 ## Project Structure
@@ -192,29 +191,28 @@ Below is an example for the VPC resource.
 
 ```typescript
 const vpc = new VPC({
-                metadata: {
-                    ...commonMetadata,
-                },
-                spec: {
-                    ...commonSpec,
-                    forProvider: {
-                        cidrBlock: observedComposite?.resource?.spec?.parameters
-                            ?.vpcCidrBlock,
-                        enableDnsHostnames: true,
-                        enableDnsSupport: true,
-                        region: region,
-                        tags: {
-                            Name: observedComposite?.resource?.metadata?.name,
-                        },
-                    },
-                },
-            });
+  metadata: {
+    ...commonMetadata,
+  },
+  spec: {
+    ...commonSpec,
+    forProvider: {
+      cidrBlock: observedComposite?.resource?.spec?.parameters?.vpcCidrBlock,
+      enableDnsHostnames: true,
+      enableDnsSupport: true,
+      region: region,
+      tags: {
+        Name: observedComposite?.resource?.metadata?.name,
+      },
+    },
+  },
+});
 
-            vpc.validate();
+vpc.validate();
 
-            desiredComposed["vpc"] = Resource.fromJSON({
-                resource: vpc.toJSON(),
-            });
+desiredComposed['vpc'] = Resource.fromJSON({
+  resource: vpc.toJSON(),
+});
 ```
 
 ### Build TypeScript
@@ -278,7 +276,7 @@ npm run local-render
 or run `crossplane render` directly:
 
 ```sh
-crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml 
+crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml
 
 ```
 
@@ -308,7 +306,7 @@ The function package runs in a Docker/OCI image. To create a multi-platform imag
 via npm or the shell script directly:
 
 ```bash
-npm run function-docker-build 
+npm run function-docker-build
 ```
 
 or:
@@ -325,7 +323,7 @@ The Dockerfile uses a multi-stage build:
 The images will be saved in the `_build/docker` directory:
 
 ```bash
-$ ls -al _build/docker_images 
+$ ls -al _build/docker_images
 configuration-aws-network-ts-function-runtime-amd64-v0.0.8.tar
 configuration-aws-network-ts-function-runtime-arm64-v0.0.8.tar
 ```
@@ -335,7 +333,7 @@ configuration-aws-network-ts-function-runtime-arm64-v0.0.8.tar
 Now that docker images have been created, build the Crossplane function packages.
 
 ```bash
-npm run function-xpkg-build 
+npm run function-xpkg-build
 ```
 
 or:
@@ -347,7 +345,7 @@ scripts/function-xpkg-build.sh
 The created function images will be in the `_build/xpkg` directory:
 
 ```shell
-$ ls _build/xpkg 
+$ ls _build/xpkg
 configuration-aws-network-ts-function-amd64-v0.0.8.xpkg
 configuration-aws-network-ts-function-arm64-v0.0.8.xpkg
 ```

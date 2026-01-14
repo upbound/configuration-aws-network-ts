@@ -15,4 +15,3 @@ metadata:
 spec:
   capabilities:
     - composition
-    - operation
