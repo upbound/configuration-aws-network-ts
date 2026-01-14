@@ -1,6 +1,6 @@
 {
   "name": "configuration-aws-network-ts",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Configuration AWS Network in Typescript",
   "keywords": [
     "crossplane",
