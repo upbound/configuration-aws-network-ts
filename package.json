@@ -1,6 +1,6 @@
 {
   "name": "configuration-aws-network",
-  "version": "0.1.0",
+  "version": "0.0.20",
   "description": "Configuration AWS Network in Typescript",
   "keywords": [
     "crossplane",
@@ -16,6 +16,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
+    "build": "tsgo",
     "clean": "rm -rf dist/* _build/*",
     "configuration-xpkg-build": "scripts/configuration-xpkg-build.sh",
     "configuration-xpkg-push": "scripts/configuration-xpkg-push.sh",
@@ -28,7 +29,11 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "tsc": "tsc",
     "tsgo": "tsgo",
-    "check-types": "tsgo --noEmit"
+    "check-types": "tsgo --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
     "@crossplane-models/provider-upjet-aws": "^2.3.0-build.1",
@@ -37,13 +42,17 @@
     "commander": "^12.0.0",
     "kubernetes-models": "^4.5.1",
     "pino": "^10.1.0",
-    "typescript": "^5.9.3",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/jest": "^30.0.0",
     "@typescript/native-preview": "^7.0.0-dev.20251202.1",
+    "eslint": "^9.39.2",
     "jest": "^30.2.0",
-    "ts-jest": "^29.4.6"
+    "prettier": "^3.7.4",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
   }
 }

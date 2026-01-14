@@ -226,7 +226,7 @@ input:
               cidrBlock: 192.168.0.0/16
           status:
             atProvider:
-              id: vpc-0a1b2c3d4e5f6g7h8  # Simulates AWS provider status
+              id: vpc-0a1b2c3d4e5f6g7h8 # Simulates AWS provider status
 
 expected:
   # Verify status is propagated to composite

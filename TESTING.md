@@ -100,12 +100,14 @@ Add tests directly to [function.test.ts](./function.test.ts):
 
 ```typescript
 it('should do something specific', async () => {
-    const func = new Function();
-    const request = { /* ... */ };
-    const response = await func.RunFunction(request);
+  const func = new Function();
+  const request = {
+    /* ... */
+  };
+  const response = await func.RunFunction(request);
 
-    expect(response.desired?.resources).toBeDefined();
-    // Your assertions here
+  expect(response.desired?.resources).toBeDefined();
+  // Your assertions here
 });
 ```
 
@@ -199,6 +201,7 @@ This shows all resources that would be created for the example configuration.
 ### 2. Create Test Case
 
 Based on the output:
+
 1. Identify which resources and fields are important to test
 2. Create a test case file in `test-cases/`
 3. Use partial matching to focus on critical assertions
@@ -212,6 +215,7 @@ npm test
 ### 4. Iterate
 
 If tests fail:
+
 - Check the error message to see what doesn't match
 - Use `npm run local-render` to compare expected vs actual
 - Update your test case or fix the function code
@@ -340,14 +344,14 @@ For advanced testing, use the helpers from [test-helpers.ts](./test-helpers.ts):
 
 ```typescript
 import {
-    loadTestCases,
-    assertTestCase,
-    assertResources,
-    assertResourceCount,
-    assertResourceTypes,
-    assertStatus,
-    buildObservedResource,
-    buildTestInput
+  loadTestCases,
+  assertTestCase,
+  assertResources,
+  assertResourceCount,
+  assertResourceTypes,
+  assertStatus,
+  buildObservedResource,
+  buildTestInput,
 } from './test-helpers.js';
 
 // Load test cases
@@ -363,10 +367,14 @@ assertResourceTypes(response, ['VPC', 'Subnet']);
 
 // Build test inputs with observed resources
 const input = buildTestInput({
-    composite: { /* ... */ },
-    observedResources: {
-        vpc: buildObservedResource({ /* ... */ })
-    }
+  composite: {
+    /* ... */
+  },
+  observedResources: {
+    vpc: buildObservedResource({
+      /* ... */
+    }),
+  },
 });
 ```
 
