@@ -15,7 +15,7 @@ metadata:
       For more details and customization options, you can explore [the GitHub repository](https://github.com/upbound/configuration-aws-network).
 spec:
   crossplane:
-    version: ">=v1.14.1-0"
+    version: ">=v1.17.0-0"
   dependsOn:
     - apiVersion: pkg.crossplane.io/v1
       kind: Provider
@@ -24,8 +24,8 @@ spec:
     - apiVersion: pkg.crossplane.io/v1
       kind: Function
       package: xpkg.upbound.io/crossplane-contrib/function-auto-ready
-      version: ">=v0.0.0"
+      version: ">=v0.6.0"
     - apiVersion: pkg.crossplane.io/v1
       kind: Function
-      package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts-function
-      version: ">=v0.0.0"
+      package: xpkg.upbound.io/upbound/configuration-aws-network-ts-function
+      version: ">=v0.1.0"
