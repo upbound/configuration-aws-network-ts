@@ -26,10 +26,8 @@ env:
   # organization) settings. Create a token at https://accounts.upbound.io.
   XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
 
-  # The package to push, without a version tag. The default matches GitHub. For
-  # example xpkg.upbound.io/crossplane/function-template-go.
-  #
-  XPKG: xpkg.upbound.io/${{ github.repository}}
+  # The OCI/Docker Respository to push our images to.
+  XPKG_REPO: xpkg.upbound.io/${{ github.repository_owner }}
 
   # Names for the Configuration and corresponding Function Packages
   XPKG_NAME: configuration-aws-network-ts
@@ -259,5 +257,5 @@ jobs:
             echo "Error: Configuration package ${CONF_XPKG_FILE} not found"
             exit 1
           fi
-          crossplane --verbose xpkg push --package-files ${CONF_XPKG_FILE} ${{env.XPKG}}:${{needs.version.outputs.version}}
+          crossplane --verbose xpkg push --package-files ${CONF_XPKG_FILE} ${{env.XPKG}}/${{env.XPKG_NAME}}:${{needs.version.outputs.version}}
 
