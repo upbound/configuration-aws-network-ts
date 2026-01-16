@@ -29,11 +29,9 @@ env:
   # The package to push, without a version tag. The default matches GitHub. For
   # example xpkg.upbound.io/crossplane/function-template-go.
   #
-  #XPKG: xpkg.upbound.io/${{ github.repository}}
-  #use upboundcare temporarily for testing
-  XPKG: xpkg.upbound.io/upbound
-  #CROSSPLANE_REGORG: ghcr.io/${{ github.repository}} # xpkg.crossplane.io/crossplane-contrib
+  XPKG: xpkg.upbound.io/${{ github.repository}}
 
+  # Names for the Configuration and corresponding Function Packages
   XPKG_NAME: configuration-aws-network-ts
   XPKG_FN_NAME: configuration-aws-network-ts-function
 
@@ -48,7 +46,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0
 
@@ -77,7 +75,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Install
         uses: actions/setup-node@v6
@@ -93,7 +91,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Install
         uses: actions/setup-node@v6
@@ -109,7 +107,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Build
         uses: actions/setup-node@v6
@@ -126,17 +124,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Setup the Crossplane CLI
-        uses: crossplane-contrib/setup-crossplane-action@main
+        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
         with:
-          version: current
+          version: ${{env.XP_VERSION}}
 
       - name: Build the Configuration Package
         run:  crossplane xpkg build --package-root="package" --examples-root="examples" -o ${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
 
-      - name: Save the package name
+      - name: Save the Configuration package name
+        id: save-configuration-package-name
         run: |
           CONFIGURATION_XPKG=${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
           echo "configuration_xpkg=${CONFIGURATION_XPKG}" >> $GITHUB_OUTPUT
@@ -188,9 +187,9 @@ jobs:
           outputs: type=docker,dest=${{env.XPKG_FN_NAME}}-runtime-${{ matrix.arch }}-${{needs.version.outputs.version}}.tar
   
       - name: Setup the Crossplane CLI
-        uses: crossplane-contrib/setup-crossplane-action@main
+        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
         with:
-          version: current
+          version: ${{env.XP_VERSION}}
 
       - name: Build Package
         #run: ./crossplane xpkg build --package-file=${{ matrix.arch }}.xpkg --package-root=package/ --embed-runtime-image-tarball=runtime-${{ matrix.arch }}.tar
@@ -217,7 +216,7 @@ jobs:
   #     - build-function-packages
   #   steps:
   #     - name: Checkout
-  #       uses: actions/checkout@v6
+  #       uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
   #     - name: Download Single-Platform Packages
   #       uses: actions/download-artifact@v6
@@ -227,9 +226,9 @@ jobs:
   #         pattern: "!*.dockerbuild" # This gets uploaded by docker/build-push-action but must be skipped: https://github.com/actions/toolkit/pull/1874
 
   #     - name: Setup the Crossplane CLI
-  #       uses: crossplane-contrib/setup-crossplane-action@main
+  #       uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
   #       with:
-  #         version: current
+  #         version: ${{env.XP_VERSION}}
 
   #     - name: Login to Upbound
   #       uses: docker/login-action@v3
