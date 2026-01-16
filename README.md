@@ -40,7 +40,7 @@ kind: Configuration
 metadata:
   name: configuration-aws-network
 spec:
-  package: xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.8
+  package: xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.1.0
 ```
 
 Verify the package is healthy. If not, run `kubectl describe configuration.pkg configuration-aws-network`.
@@ -48,7 +48,7 @@ Verify the package is healthy. If not, run `kubectl describe configuration.pkg c
 ```sh
 $ kubectl get configuration.pkg  configuration-aws-network
 NAME                        INSTALLED   HEALTHY   PACKAGE                                                           AGE
-configuration-aws-network   True        True      xpkg.upbound.io/upboundcare/configuration-aws-network-ts:v0.0.8   18m
+configuration-aws-network   True        True      xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.1.0   18m
 ```
 
 ### Configuring AWS Authentication

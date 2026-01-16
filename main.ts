@@ -32,7 +32,10 @@ function parseArgs(args: OptionValues): ServerOptions {
     address: typeof args.address === 'string' ? args.address : defaultAddress,
     debug: Boolean(args.debug),
     insecure: Boolean(args.insecure),
-    tlsServerCertsDir: typeof args.tlsServerCertsDir === 'string' ? args.tlsServerCertsDir : defaultTlsServerCertsDir,
+    tlsServerCertsDir:
+      typeof args.tlsServerCertsDir === 'string'
+        ? args.tlsServerCertsDir
+        : defaultTlsServerCertsDir,
   };
 }
 
