@@ -35,9 +35,6 @@ env:
   XPKG_NAME: configuration-aws-network-ts
   XPKG_FN_NAME: configuration-aws-network-ts-function
 
-  # The package version to push. The default is $(npm pkg version minor)-gitsha.
-  XPKG_VERSION: ${{ inputs.version }}
-
 jobs:
   # Compute the package version once and share it with all jobs that need it
   version:
@@ -102,25 +99,28 @@ jobs:
       - name: test
         run: npm test
 
-  build:
+  check-types:
     runs-on: *default-runner
 
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Build
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: ${{env.NODE_VERSION}}
       - run: npm ci
-      - run: npm run clean
-      - run: npm run build
+
+      - name: Check Types
+        run: npm run check-types
   
-  # Build the OCI image for the configuration. 
+  # Build the OCI image for the configuration.
   build-configuration-package:
     runs-on: *default-runner
-    needs: version
+    needs:
+      - version
+      - check-types
 
     steps:
       - name: Checkout
@@ -153,6 +153,7 @@ jobs:
   build-function-packages:
     needs:
       - version
+      - check-types
     runs-on: *default-runner
     strategy:
       fail-fast: true
@@ -192,8 +193,6 @@ jobs:
           version: ${{env.XP_VERSION}}
 
       - name: Build Package
-        #run: ./crossplane xpkg build --package-file=${{ matrix.arch }}.xpkg --package-root=package/ --embed-runtime-image-tarball=runtime-${{ matrix.arch }}.tar
-        #run: crossplane xpkg build --package-root="package" --examples-root="examples" -o ${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
         run: |
           crossplane xpkg build --embed-runtime-image-tarball=${{env.XPKG_FN_NAME}}-runtime-${{ matrix.arch }}-${{needs.version.outputs.version}}.tar \
           --package-root="package-function" \
@@ -206,49 +205,59 @@ jobs:
           path: ${{env.XPKG_FN_NAME}}-${{ matrix.arch }}-${{needs.version.outputs.version}}.xpkg
           if-no-files-found: error
           retention-days: 1
+  
   # This job downloads the single-platform packages built by the build job, and
   # pushes them as a multi-platform package. We only push the package it the
   # XPKG_ACCESS_ID and XPKG_TOKEN secrets were provided.
-  # push:
-  #   runs-on: *default-runner
-  #   needs:
-  #     - version
-  #     - build-function-packages
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+  push:
+    runs-on: *default-runner
+    needs:
+      - version
+      - lint
+      - test
+      - build-function-packages
+      - build-configuration-package
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-  #     - name: Download Single-Platform Packages
-  #       uses: actions/download-artifact@v6
-  #       with:
-  #         path: .
-  #         merge-multiple: true
-  #         pattern: "!*.dockerbuild" # This gets uploaded by docker/build-push-action but must be skipped: https://github.com/actions/toolkit/pull/1874
+      - name: Download Single-Platform Packages
+        uses: actions/download-artifact@v6
+        with:
+          path: .
+          merge-multiple: true
+          pattern: "!*.dockerbuild" # This gets uploaded by docker/build-push-action but must be skipped: https://github.com/actions/toolkit/pull/1874
 
-  #     - name: Setup the Crossplane CLI
-  #       uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
-  #       with:
-  #         version: ${{env.XP_VERSION}}
+      - name: Setup the Crossplane CLI
+        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
+        with:
+          version: ${{env.XP_VERSION}}
 
-  #     - name: Login to Upbound
-  #       uses: docker/login-action@v3
-  #       if: env.XPKG_ACCESS_ID != ''
-  #       with:
-  #         registry: xpkg.upbound.io
-  #         username: ${{ secrets.XPKG_ACCESS_ID }}
-  #         password: ${{ secrets.XPKG_TOKEN }}
+      - name: Login to Upbound
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
+        if: env.XPKG_ACCESS_ID != ''
+        with:
+          registry: xpkg.upbound.io
+          username: ${{ secrets.XPKG_ACCESS_ID }}
+          password: ${{ secrets.XPKG_TOKEN }}
 
-  #     - name: Push Multi-Platform Packages to Upbound
-  #       if: env.XPKG_ACCESS_ID != ''
-  #       run: "./crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.XPKG }}:${{ needs.version.outputs.version }}"
+      - name: Push Multi-Platform Function Packages to Upbound
+        if: env.XPKG_ACCESS_ID != ''
+        run: |
+          FN_XPKG_FILES=$(echo "${{env.XPKG_FN_NAME}}"-*-${{needs.version.outputs.version}}.xpkg | tr ' ' ',')
+          if [ -z "${FN_XPKG_FILES}" ] || [ "${FN_XPKG_FILES}" = "${{env.XPKG_FN_NAME}}-*-${{needs.version.outputs.version}}.xpkg" ]; then
+            echo "Error: No xpkg files found matching pattern"
+            exit 1
+          fi
+          crossplane --verbose xpkg push --package-files ${FN_XPKG_FILES} ${{env.XPKG}}/${{env.XPKG_FN_NAME}}:${{needs.version.outputs.version}}
 
-  #     # - name: Login to GHCR
-  #     #   uses: docker/login-action@v3.6.0
-  #     #   with:
-  #     #     registry: ghcr.io
-  #     #     username: ${{ github.repository_owner }}
-  #     #     password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push Configuration Package to Upbound
+        if: env.XPKG_ACCESS_ID != ''
+        run: |
+          CONF_XPKG_FILE="${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg"
+          if [ ! -f "${CONF_XPKG_FILE}" ]; then
+            echo "Error: Configuration package ${CONF_XPKG_FILE} not found"
+            exit 1
+          fi
+          crossplane --verbose xpkg push --package-files ${CONF_XPKG_FILE} ${{env.XPKG}}:${{needs.version.outputs.version}}
 
-  #     # - name: Push Multi-Platform Package to GHCR
-  #     #   if: env.XPKG_ACCESS_ID != ''
-  #     #   run: "./crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.CROSSPLANE_REGORG }}:${{ env.XPKG_VERSION }}"
