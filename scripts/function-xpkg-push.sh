@@ -3,7 +3,6 @@
 . ./env
 
 set -xe
-XPKG_FILES=$(echo ${XPKG_DIR}/${FN_NAME}-*-v${VERSION}.xpkg|tr ' ' ,)
 XPKG_FILES=$(echo "${XPKG_DIR}/${FN_NAME}"-*-v"${VERSION}".xpkg | tr ' ' ',')
 if [ -z "${XPKG_FILES}" ] || [ "${XPKG_FILES}" = "${XPKG_DIR}/${FN_NAME}-*-v${VERSION}.xpkg" ]; then
   echo "Error: No xpkg files found matching pattern"
