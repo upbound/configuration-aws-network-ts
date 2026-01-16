@@ -10,7 +10,7 @@ spec:
   mode: Pipeline
   pipeline:
     - functionRef:
-        name: upboundcare-configuration-aws-network-ts-function
+        name: upbound-configuration-aws-network-ts-function
       step: network
     - functionRef:
         name: crossplane-contrib-function-auto-ready
