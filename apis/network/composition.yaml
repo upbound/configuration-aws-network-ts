@@ -1,4 +1,3 @@
----
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
@@ -9,9 +8,9 @@ spec:
     kind: Network
   mode: Pipeline
   pipeline:
-    - functionRef:
-        name: upbound-configuration-aws-network-ts-function
-      step: network
-    - functionRef:
-        name: crossplane-contrib-function-auto-ready
-      step: crossplane-contrib-function-auto-ready
+  - functionRef:
+      name: upbound-configuration-aws-network-tsnetwork
+    step: network
+  - functionRef:
+      name: crossplane-contrib-function-auto-ready
+    step: crossplane-contrib-function-auto-ready

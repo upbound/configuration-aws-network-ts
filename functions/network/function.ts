@@ -24,7 +24,7 @@ import {
   SecurityGroupRule,
   Subnet,
   VPC,
-} from '@crossplane-models/provider-upjet-aws/ec2.aws.m.upbound.io/v1beta1';
+} from './model/ec2.aws.m.upbound.io/v1beta1/index.js';
 
 /**
  * Function creates AWS network infrastructure including VPC, subnets,

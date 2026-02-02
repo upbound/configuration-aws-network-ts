@@ -1,12 +1,9 @@
-
 name: CI
 
 on:
   push:
     branches:
       - main
-      - release-*
-  pull_request: {}
   workflow_dispatch:
     inputs:
       version:
@@ -14,248 +11,60 @@ on:
         required: false
 
 env:
-  NODE_VERSION: "24"
-
-  # These environment variables are important to the Crossplane CLI install.sh
-  # script. They determine what version it installs.
-  XP_CHANNEL: stable
-  XP_VERSION: current
-
-  # This CI job will automatically push new builds to xpkg.upbound.io if the
-  # XPKG_ACCESS_ID and XPKG_TOKEN secrets are set in the GitHub repository (or
-  # organization) settings. Create a token at https://accounts.upbound.io.
-  XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
-
-  # The OCI/Docker Repository to push our images to.
-  XPKG_REPO: xpkg.upbound.io/${{ github.repository_owner }}
-
-  # Names for the Configuration and corresponding Function Packages
-  XPKG_NAME: configuration-aws-network-ts
-  XPKG_FN_NAME: configuration-aws-network-ts-function
+  UP_API_TOKEN: ${{ secrets.UP_API_TOKEN }}
+  UP_ROBOT_ID: ${{ secrets.UP_ROBOT_ID }}
+  UP_ORG: ${{ secrets.UP_ORG }}
+  XPKG_REGISTRY: xpkg.upbound.io
 
 jobs:
-  # Compute the package version once and share it with all jobs that need it
-  version:
-    runs-on: &default-runner ubuntu-24.04
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+  deploy:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Install and login with up
+        if: env.UP_API_TOKEN != '' && env.UP_ORG != ''
+        uses: upbound/action-up@53fe6395637d884c80d2bbc8c2d75d0ece776ced # v1
         with:
-          node-version: ${{env.NODE_VERSION}}
+          api-token: ${{ secrets.UP_API_TOKEN }}
+          organization: ${{ secrets.UP_ORG }}
 
-      # If a version wasn't explicitly passed as a workflow_dispatch input we
-      # default to version $(npm pkg get version)-<git-commit-date>-<git-short-sha>, for example
-      # v0.1.1-20231101115142-1091066df799. This is a simple implementation of
-      # Go's pseudo-versions: https://go.dev/ref/mod#pseudo-versions.
-      - name: Compute Package Version
-        id: version
+      # doesn't work with plain token when pushing otherwise
+      - name: Login to xpkg with robot
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
+        with:
+          registry: ${{ env.XPKG_REGISTRY }}
+          username: ${{ env.UP_ROBOT_ID }}
+          password: ${{ env.UP_API_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build TypeScript functions
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="v$(npm pkg get version | tr -d '"')-$(date -d@$(git show -s --format=%ct) +%Y%m%d%H%M%S)-$(git rev-parse --short=12 HEAD)"
-          fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Computed version: ${VERSION}"
+          for dir in functions/*/; do
+            if [ -f "${dir}package.json" ]; then
+              echo "Building function in ${dir}"
+              (cd "${dir}" && npm install && npm run build)
+            fi
+          done
 
-  lint:
-    runs-on: *default-runner
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Install
-        uses: actions/setup-node@v6
+      - name: Build and Push Upbound project
+        if: env.UP_API_TOKEN != ''
+        uses: upbound/action-up-project@b849ec1eb303ae4abf22b2b86c0e2afca155137b # v1
         with:
-          node-version: ${{env.NODE_VERSION}}
-      - run: npm ci
+          push-project: true
+          tag: ${{ inputs.version || '' }}
+          # login-check does `up org list` which doesn't work with a robot-token
+          skip-login-check: true
 
-      - name: Lint
-        run: npm run lint
-
-  test:
-    runs-on: *default-runner
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Install
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{env.NODE_VERSION}}
-      - run: npm ci
-
-      - name: test
-        run: npm test
-
-  check-types:
-    runs-on: *default-runner
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{env.NODE_VERSION}}
-      - run: npm ci
-
-      - name: Check Types
-        run: npm run check-types
-  
-  # Build the OCI image for the configuration.
-  build-configuration-package:
-    runs-on: *default-runner
-    needs:
-      - version
-      - check-types
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Setup the Crossplane CLI
-        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
-        with:
-          version: ${{env.XP_VERSION}}
-
-      - name: Build the Configuration Package
-        run:  crossplane xpkg build --package-root="package" --examples-root="examples" -o ${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
-
-      - name: Save the Configuration package name
-        id: save-configuration-package-name
+      - name: Append icon overlay to package
+        if: env.UP_API_TOKEN != '' && hashFiles('./extensions') != '' && inputs.version != ''
         run: |
-          CONFIGURATION_XPKG=${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
-          echo "configuration_xpkg=${CONFIGURATION_XPKG}" >> $GITHUB_OUTPUT
-          echo "Configuration Package: ${CONFIGURATION_XPKG}"
-  
-      - name: Upload Single-Platform Package
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: configuration-xpkg
-          path: ${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg
-          if-no-files-found: error
-          retention-days: 1
-
-  # Build OCI images for the function
-  build-function-packages:
-    needs:
-      - version
-      - check-types
-    runs-on: *default-runner
-    strategy:
-      fail-fast: true
-      matrix:
-        arch:
-          - amd64
-          - arm64
-    
-    steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
-        with:
-          platforms: all
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-   
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      # We ask Docker to use GitHub Action's native caching support to speed up
-      # the build, per https://docs.docker.com/build/cache/backends/gha/.
-      - name: Build Runtime
-        id: image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
-        with:
-          context: .
-          platforms: linux/${{ matrix.arch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          target: image
-          outputs: type=docker,dest=${{env.XPKG_FN_NAME}}-runtime-${{ matrix.arch }}-${{needs.version.outputs.version}}.tar
-  
-      - name: Setup the Crossplane CLI
-        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
-        with:
-          version: ${{env.XP_VERSION}}
-
-      - name: Build Package
-        run: |
-          crossplane xpkg build --embed-runtime-image-tarball=${{env.XPKG_FN_NAME}}-runtime-${{ matrix.arch }}-${{needs.version.outputs.version}}.tar \
-          --package-root="package-function" \
-          -o ${{env.XPKG_FN_NAME}}-${{ matrix.arch }}-${{needs.version.outputs.version}}.xpkg
- 
-      - name: Upload Single-Platform Package
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: function-package-${{ matrix.arch }}
-          path: ${{env.XPKG_FN_NAME}}-${{ matrix.arch }}-${{needs.version.outputs.version}}.xpkg
-          if-no-files-found: error
-          retention-days: 1
-  
-  # This job downloads the single-platform packages built by the build job, and
-  # pushes them as a multi-platform package. We only push the package it the
-  # XPKG_ACCESS_ID and XPKG_TOKEN secrets were provided.
-  push:
-    runs-on: *default-runner
-    needs:
-      - version
-      - lint
-      - test
-      - build-function-packages
-      - build-configuration-package
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Download Single-Platform Packages
-        uses: actions/download-artifact@v6
-        with:
-          path: .
-          merge-multiple: true
-          pattern: "!*.dockerbuild" # This gets uploaded by docker/build-push-action but must be skipped: https://github.com/actions/toolkit/pull/1874
-
-      - name: Setup the Crossplane CLI
-        uses: crossplane-contrib/setup-crossplane-action@cb8aac3f1246b19f101e7f85fd0a38623b4d5ad3 #v0.1.1
-        with:
-          version: ${{env.XP_VERSION}}
-
-      - name: Login to Upbound
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
-        if: env.XPKG_ACCESS_ID != ''
-        with:
-          registry: xpkg.upbound.io
-          username: ${{ secrets.XPKG_ACCESS_ID }}
-          password: ${{ secrets.XPKG_TOKEN }}
-
-      - name: Push Multi-Platform Function Packages to Upbound
-        if: env.XPKG_ACCESS_ID != ''
-        run: |
-          FN_XPKG_FILES=$(echo "${{env.XPKG_FN_NAME}}"-*-${{needs.version.outputs.version}}.xpkg | tr ' ' ',')
-          if [ -z "${FN_XPKG_FILES}" ] || [ "${FN_XPKG_FILES}" = "${{env.XPKG_FN_NAME}}-*-${{needs.version.outputs.version}}.xpkg" ]; then
-            echo "Error: No xpkg files found matching pattern"
-            exit 1
-          fi
-          crossplane --verbose xpkg push --package-files ${FN_XPKG_FILES} ${{env.XPKG_REPO}}/${{env.XPKG_FN_NAME}}:${{needs.version.outputs.version}}
-
-      - name: Push Configuration Package to Upbound
-        if: env.XPKG_ACCESS_ID != ''
-        run: |
-          CONF_XPKG_FILE="${{env.XPKG_NAME}}-${{needs.version.outputs.version}}.xpkg"
-          if [ ! -f "${CONF_XPKG_FILE}" ]; then
-            echo "Error: Configuration package ${CONF_XPKG_FILE} not found"
-            exit 1
-          fi
-          crossplane --verbose xpkg push --package-files ${CONF_XPKG_FILE} ${{env.XPKG_REPO}}/${{env.XPKG_NAME}}:${{needs.version.outputs.version}}
-
+          PROJECT_NAME=$(yq '.metadata.name' upbound.yaml)
+          PACKAGE_REF="${{ env.XPKG_REGISTRY }}/${{ env.UP_ORG }}/${PROJECT_NAME}:${{ inputs.version }}"
+          up alpha xpkg append --extensions-root=./extensions ${PACKAGE_REF}

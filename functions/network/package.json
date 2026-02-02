@@ -16,17 +16,13 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy:schemas",
     "clean": "rm -rf dist/* _build/*",
-    "configuration-xpkg-build": "scripts/configuration-xpkg-build.sh",
-    "configuration-xpkg-push": "scripts/configuration-xpkg-push.sh",
-    "function-docker-build": "scripts/function-docker-build.sh",
-    "function-xpkg-build": "scripts/function-xpkg-build.sh",
-    "function-xpkg-push": "scripts/function-xpkg-push.sh",
-    "function-build-all": "npm run function-docker-build && npm run function-xpkg-build && npm run function-xpkg-push",
+    "copy:schemas": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'model/_schemas'; const dest = 'dist/model/_schemas'; if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.readdirSync(src).filter(f => f.endsWith('.js') || f.endsWith('.d.ts')).forEach(f => fs.copyFileSync(path.join(src, f), path.join(dest, f))); }\"",
     "local": "node dist/main.js --insecure --debug",
-    "local-render": "crossplane render examples/network/configuration-aws-network.yaml package/apis/network/composition.yaml examples/functions.yaml",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "local-render": "up composition render apis/network/composition.yaml examples/network/network.yaml --xrd apis/network/definition.yaml",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "tsc": "tsc",
     "tsgo": "tsgo",
     "check-types": "tsgo --noEmit",
@@ -36,7 +32,6 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
-    "@crossplane-models/provider-upjet-aws": "^2.3.0-build.1",
     "@crossplane-org/function-sdk-typescript": "^0.3.0",
     "@types/node": "^24.10.1",
     "commander": "^12.0.0",
@@ -47,12 +42,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/jest": "^30.0.0",
     "@typescript/native-preview": "^7.0.0-dev.20251202.1",
+    "@vitest/ui": "^2.1.8",
     "eslint": "^9.39.2",
-    "jest": "^30.2.0",
     "prettier": "^3.7.4",
-    "ts-jest": "^29.4.6",
-    "typescript-eslint": "^8.53.0"
+    "typescript-eslint": "^8.53.0",
+    "vitest": "^2.1.8"
   }
 }

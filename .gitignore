@@ -1,3 +1,6 @@
+_output
+.venv
+.up
 node_modules
 
 # Compiled ts files
