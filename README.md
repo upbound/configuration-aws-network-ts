@@ -322,11 +322,20 @@ so that automated testing can bring both up with a single `--extra-resources` ar
 > ```
 >
 > Adding the path to `.gitignore` will not do it — gitignore only applies to untracked files,
-> and this one is tracked. `skip-worktree` is the equivalent for a tracked file, but it is
-> local to your clone, so everyone working on the repo has to run it themselves.
->
-> To pick the file up again later — say to change the placeholders themselves —
-> reverse it with `--no-skip-worktree`.
+> and this one is tracked. `skip-worktree` is the equivalent for a tracked file. To pick the
+> file up again later — say to change the placeholders themselves — reverse it with
+> `--no-skip-worktree`.
+
+There is also a pre-commit hook in [.githooks/](.githooks/) that refuses any commit staging
+this file without its placeholders, or staging an AWS access key or secret key in any other
+file. It is worth enabling once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Hooks are not installed by cloning, so this is opt-in — it protects you, not the repository.
+`git commit --no-verify` bypasses it.
 
 Once it is up, apply the example as normal:
 
