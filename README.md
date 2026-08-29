@@ -160,7 +160,7 @@ kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws
 │       ├── vitest.config.ts
 │       ├── src/
 │       │   ├── function.ts       # Function logic
-│       │   └── main.ts           # gRPC server entrypoint
+│       │   └── main.ts           # Entrypoint — hands the function to serve()
 │       └── test/
 │           ├── function.test.ts
 │           ├── test-helpers.ts
@@ -250,10 +250,13 @@ const vpc = new VPC({
 
 vpc.validate();
 
-desiredComposed['vpc'] = Resource.fromJSON({
-  resource: vpc.toJSON(),
-});
+desiredComposed['vpc'] = fromModel(vpc);
 ```
+
+`fromModel()` is the SDK helper for turning a kubernetes-models object into a composed
+resource. `validate()` stays a separate call: values read off the XR are untyped at runtime,
+so it is the only thing that catches a missing or wrong-typed field before the resource is
+sent to the API server.
 
 If you add a new managed resource kind, add its CRD name to
 [apis/network/mrap.yaml](apis/network/mrap.yaml) so Crossplane activates it.
