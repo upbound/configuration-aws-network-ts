@@ -8,6 +8,7 @@ import {
   Resource,
   setDesiredCompositeStatus,
 } from '@crossplane-org/function-sdk-typescript';
+import { type INetwork } from 'crossplane-models/aws.platform.upbound.io/v1alpha1';
 import {
   InternetGateway,
   MainRouteTableAssociation,
@@ -343,14 +344,15 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     if (observedComposed?.sg?.resource?.status?.atProvider?.id) {
       securityGroupIds.push(observedComposed.sg.resource.status.atProvider.id);
     }
-    // update the composite status
-    const xrStatus: XRStatus = {
-      ...(privateSubnetIds.length > 0 && { privateSubnetIds }),
-      ...(publicSubnetIds.length > 0 && { publicSubnetIds }),
-      ...(securityGroupIds.length > 0 && { securityGroupIds }),
-      ...(subnetIds.length > 0 && { subnetIds }),
-      ...(vpcId && { vpcId }),
-    };
+    // update the composite status. Assigning rather than spreading conditionals
+    // keeps every field name checked against XRStatus; a spread of `cond && {...}`
+    // is not excess-property checked, so a typo there would pass silently.
+    const xrStatus: XRStatus = {};
+    if (privateSubnetIds.length > 0) xrStatus.privateSubnetIds = privateSubnetIds;
+    if (publicSubnetIds.length > 0) xrStatus.publicSubnetIds = publicSubnetIds;
+    if (securityGroupIds.length > 0) xrStatus.securityGroupIds = securityGroupIds;
+    if (subnetIds.length > 0) xrStatus.subnetIds = subnetIds;
+    if (vpcId) xrStatus.vpcId = vpcId;
 
     const withStatus = setDesiredCompositeStatus({ rsp, status: xrStatus });
 
@@ -374,11 +376,10 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
   }
 };
 
-// Status fields for an XR
-// Values can be either a single string (e.g., vpcId) or an array of strings (e.g., subnetIds)
-interface XRStatus {
-  [key: string]: string | string[];
-}
+// Status fields for the Network XR, taken from the generated model rather than
+// restated here, so the status block in apis/network/definition.yaml is the
+// single source of truth and a mistyped field name fails to compile.
+type XRStatus = NonNullable<INetwork['status']>;
 
 // converts a CIDR into a string usable in a composed resource name
 // 1.2.3.4/32 -> 1-2-3-4-32
