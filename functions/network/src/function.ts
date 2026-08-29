@@ -1,11 +1,11 @@
 import {
   type ComposeFunction,
   fatal,
+  fromModel,
   getDesiredCompositeResource,
   getObservedComposedResources,
   getObservedCompositeResource,
   normal,
-  Resource,
   setDesiredCompositeStatus,
 } from '@crossplane-org/function-sdk-typescript';
 import { type INetwork } from 'crossplane-models/aws.platform.upbound.io/v1alpha1';
@@ -96,9 +96,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
 
     vpc.validate();
 
-    desiredComposed['vpc'] = Resource.fromJSON({
-      resource: vpc.toJSON(),
-    });
+    desiredComposed['vpc'] = fromModel(vpc);
 
     const igw = new InternetGateway({
       metadata: {
@@ -116,9 +114,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     });
 
     igw.validate();
-    desiredComposed['igw'] = Resource.fromJSON({
-      resource: igw.toJSON(),
-    });
+    desiredComposed['igw'] = fromModel(igw);
 
     // create Subnets and RouteTableAssociations for each subnet
     for (const subnet of subnets) {
@@ -160,9 +156,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
       });
       s.validate();
       const subnetKey = 'subnet-' + name;
-      desiredComposed[subnetKey] = Resource.fromJSON({
-        resource: s.toJSON(),
-      });
+      desiredComposed[subnetKey] = fromModel(s);
 
       const subnetId = observedComposed?.[subnetKey]?.resource?.status?.atProvider?.id;
       if (subnetId) {
@@ -195,9 +189,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
         },
       });
       rta.validate();
-      desiredComposed['rta-' + name] = Resource.fromJSON({
-        resource: rta.toJSON(),
-      });
+      desiredComposed['rta-' + name] = fromModel(rta);
     }
 
     const rt = new RouteTable({
@@ -216,9 +208,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     });
 
     rt.validate();
-    desiredComposed['rt'] = Resource.fromJSON({
-      resource: rt.toJSON(),
-    });
+    desiredComposed['rt'] = fromModel(rt);
 
     const mrta = new MainRouteTableAssociation({
       metadata: {
@@ -239,9 +229,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     });
 
     mrta.validate();
-    desiredComposed['mrta'] = Resource.fromJSON({
-      resource: mrta.toJSON(),
-    });
+    desiredComposed['mrta'] = fromModel(mrta);
 
     const route = new Route({
       metadata: {
@@ -263,9 +251,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     });
 
     route.validate();
-    desiredComposed['route'] = Resource.fromJSON({
-      resource: route.toJSON(),
-    });
+    desiredComposed['route'] = fromModel(route);
 
     // These should probably be moved to configuration-aws-database
     const sg = new SecurityGroup({
@@ -286,9 +272,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
     });
 
     sg.validate();
-    desiredComposed['sg'] = Resource.fromJSON({
-      resource: sg.toJSON(),
-    });
+    desiredComposed['sg'] = fromModel(sg);
 
     const sgrPostgres = new SecurityGroupRule({
       metadata: {
@@ -311,9 +295,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
       },
     });
     sgrPostgres.validate();
-    desiredComposed['sgr-postgres'] = Resource.fromJSON({
-      resource: sgrPostgres.toJSON(),
-    });
+    desiredComposed['sgr-postgres'] = fromModel(sgrPostgres);
 
     const sgrMysql = new SecurityGroupRule({
       metadata: {
@@ -336,9 +318,7 @@ export const compose: ComposeFunction = async (req, rsp, logger) => {
       },
     });
     sgrMysql.validate();
-    desiredComposed['sgr-mysql'] = Resource.fromJSON({
-      resource: sgrMysql.toJSON(),
-    });
+    desiredComposed['sgr-mysql'] = fromModel(sgrMysql);
 
     const vpcId = observedComposed?.vpc?.resource?.status?.atProvider?.id;
     if (observedComposed?.sg?.resource?.status?.atProvider?.id) {
