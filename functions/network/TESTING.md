@@ -100,10 +100,8 @@ Add tests directly to [function.test.ts](./test/function.test.ts):
 
 ```typescript
 it('should do something specific', async () => {
-  const func = new Function();
-  const request = {
-    /* ... */
-  };
+  const func = fromCompose(compose);
+  const request = {/* ... */};
   const response = await func.RunFunction(request);
 
   expect(response.desired?.resources).toBeDefined();
@@ -251,12 +249,14 @@ Your function can be tested with observed resources that have status information
 ### Using Helper Functions
 
 ```typescript
+import { fromCompose } from '@crossplane-org/function-sdk-typescript';
+import { compose } from '../src/function.js';
 import {
     buildObservedResource,
     buildTestInput
 } from './test-helpers.js';
 
-const func = new Function();
+const func = fromCompose(compose);
 
 const input = buildTestInput({
     composite: {
@@ -367,13 +367,9 @@ assertResourceTypes(response, ['VPC', 'Subnet']);
 
 // Build test inputs with observed resources
 const input = buildTestInput({
-  composite: {
-    /* ... */
-  },
+  composite: {/* ... */},
   observedResources: {
-    vpc: buildObservedResource({
-      /* ... */
-    }),
+    vpc: buildObservedResource({/* ... */}),
   },
 });
 ```
