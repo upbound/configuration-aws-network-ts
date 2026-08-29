@@ -16,6 +16,7 @@ It is packaged as a [Crossplane project](https://docs.crossplane.io/latest/cli/)
   - [Deleting the Example](#deleting-the-example)
 - [Project Structure](#project-structure)
 - [Development](#development)
+  - [Building the Crossplane CLI](#building-the-crossplane-cli)
   - [Generating Schemas](#generating-schemas)
   - [Updating the Function](#updating-the-function)
   - [Type Checking and Tests](#type-checking-and-tests)
@@ -159,7 +160,7 @@ kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws
 │       ├── vitest.config.ts
 │       ├── src/
 │       │   ├── function.ts       # Function logic
-│       │   └── main.ts           # gRPC server entrypoint
+│       │   └── main.ts           # Entrypoint — hands the function to serve()
 │       └── test/
 │           ├── function.test.ts
 │           ├── test-helpers.ts
@@ -172,6 +173,32 @@ kubectl delete -n network-team network.aws.platform.upbound.io/configuration-aws
 ```
 
 ## Development
+
+### Building the Crossplane CLI
+
+Everything below needs a `crossplane` CLI with [crossplane/cli#170](https://github.com/crossplane/cli/pull/170),
+which is not in a release yet. Until it lands, build it from the branch:
+
+```bash
+git clone --branch project-typescript-support https://github.com/stevendborrelli/cli.git
+cd cli
+go build -o crossplane ./cmd/crossplane
+```
+
+Building needs the Go version in that repository's `go.mod` (currently 1.26). Put the resulting
+binary on your `PATH`, ahead of any released `crossplane` you already have:
+
+```bash
+sudo mv crossplane /usr/local/bin/crossplane
+```
+
+Note that a CLI built from source reports an empty client version, because the version is stamped
+in at release time — that is expected, not a broken build. Confirm it works by generating the
+schemas below instead.
+
+[CI](.github/workflows/ci.yaml) builds the CLI the same way, in its `cli` job. Once a release
+includes the TypeScript project support, this section goes away and the CLI can be installed
+from a release as normal.
 
 ### Generating Schemas
 
@@ -223,10 +250,13 @@ const vpc = new VPC({
 
 vpc.validate();
 
-desiredComposed['vpc'] = Resource.fromJSON({
-  resource: vpc.toJSON(),
-});
+desiredComposed['vpc'] = fromModel(vpc);
 ```
+
+`fromModel()` is the SDK helper for turning a kubernetes-models object into a composed
+resource. `validate()` stays a separate call: values read off the XR are untyped at runtime,
+so it is the only thing that catches a missing or wrong-typed field before the resource is
+sent to the API server.
 
 If you add a new managed resource kind, add its CRD name to
 [apis/network/mrap.yaml](apis/network/mrap.yaml) so Crossplane activates it.
@@ -273,6 +303,7 @@ The function binary supports several CLI options:
 - `-d, --debug` - Enable debug logging
 - `--insecure` - Run without mTLS credentials (for local development)
 - `--tls-server-certs-dir` - Directory containing mTLS certificates (default: `/tls/server`)
+- `-h, --help` - Show the flags and exit
 
 To run it directly:
 

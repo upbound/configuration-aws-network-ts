@@ -185,8 +185,7 @@ export function assertResources(
     }
 
     const actualResource = desiredResources[resourceKey]?.resource as
-      | KubernetesResource
-      | undefined;
+      KubernetesResource | undefined;
     if (!actualResource) {
       throw new Error(`Resource '${expected.name}' has no resource data`);
     }

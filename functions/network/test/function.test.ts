@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatCIDR, formatSubnetName, Function } from '../src/function.js';
+import { fromCompose, Severity } from '@crossplane-org/function-sdk-typescript';
+import { compose, formatCIDR, formatSubnetName } from '../src/function.js';
 import {
   loadTestCases,
   assertTestCase,
@@ -68,7 +69,7 @@ describe('formatSubnetName', () => {
 });
 
 describe('Function integration tests', () => {
-  const func = new Function();
+  const func = fromCompose(compose);
 
   it('should create VPC with correct CIDR block', async () => {
     const request = {
@@ -208,7 +209,7 @@ describe('Function integration tests', () => {
   });
 
   it('should propagate status from observed resources to composite', async () => {
-    const func = new Function();
+    const func = fromCompose(compose);
 
     // Build test input with observed resources that have status
     const input = buildTestInput({
@@ -302,7 +303,7 @@ describe('Test cases from files', () => {
   if (testFiles.length === 0) {
     it.skip('no test case files found', () => {});
   } else {
-    const func = new Function();
+    const func = fromCompose(compose);
 
     testFiles.forEach((file) => {
       describe(`Test cases from ${file}`, () => {
@@ -319,4 +320,57 @@ describe('Test cases from files', () => {
       });
     });
   }
+});
+
+describe('Invalid input handling', () => {
+  const func = fromCompose(compose);
+
+  // Every value the function reads off the XR is `any` at runtime — the SDK
+  // types the resource as { [key: string]: any } — so TypeScript cannot catch
+  // a missing parameter. validate() is what turns it into a fatal result
+  // instead of a malformed resource sent to the API server.
+  const networkMissing = (omit: string) => {
+    const parameters: Record<string, unknown> = {
+      id: 'test-network',
+      region: 'us-west-2',
+      vpcCidrBlock: '10.0.0.0/16',
+      subnets: [],
+    };
+    delete parameters[omit];
+    return {
+      observed: {
+        composite: {
+          resource: {
+            apiVersion: 'aws.platform.upbound.io/v1alpha1',
+            kind: 'Network',
+            metadata: { name: 'test-network', namespace: 'test' },
+            spec: { parameters },
+          },
+        },
+      },
+    };
+  };
+
+  it('should return a fatal result when a required parameter is missing', async () => {
+    const response = await func.RunFunction(networkMissing('region') as any);
+
+    const fatalResult = response.results?.find((r) => r.severity === Severity.SEVERITY_FATAL);
+    expect(fatalResult).toBeDefined();
+    expect(fatalResult?.message).toContain('required property region');
+  });
+
+  it('should not emit any composed resources when validation fails', async () => {
+    const response = await func.RunFunction(networkMissing('region') as any);
+
+    // Better to compose nothing than to send a resource missing a required
+    // field and have it fail later, at the provider, far from the cause.
+    expect(Object.keys(response.desired?.resources ?? {})).toHaveLength(0);
+  });
+
+  it('should compose successfully when the same input is complete', async () => {
+    const response = await func.RunFunction(networkMissing('') as any);
+
+    expect(response.results?.some((r) => r.severity === Severity.SEVERITY_FATAL)).toBe(false);
+    expect(Object.keys(response.desired?.resources ?? {}).length).toBeGreaterThan(0);
+  });
 });
