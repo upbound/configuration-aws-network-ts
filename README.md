@@ -290,9 +290,40 @@ to see the composite's spec and status.
 
 ### Running a Local Dev Cluster
 
+`crossplane project run` builds this project into a Kind cluster running Crossplane. On its own
+that leaves you with a cluster that cannot reach AWS and has no namespace to compose into, so
+pass both along:
+
 ```bash
-crossplane project run     # Kind cluster + Crossplane + this configuration
+crossplane project run \
+  --init-resources=examples/network/namespace-network-team.yaml \
+  --extra-resources=examples/network/providerconfig.yaml
+
 crossplane project stop    # tear it down
+```
+
+`--init-resources` applies the `network-team` namespace before the project installs, so the
+ProviderConfig and the composed resources have somewhere to land. `--extra-resources` then
+applies the ProviderConfig and the `aws-creds` secret it references.
+
+[examples/network/providerconfig.yaml](examples/network/providerconfig.yaml) ships with
+`REPLACE_ME` placeholders — fill in the same `[default]` credentials described under
+[AWS static credentials](#aws-static-credentials) before running.
+
+> **Do not commit real credentials.** The file is tracked, so an edited copy is one `git add .`
+> away from being published. Either keep the edit out of the index with
+> `git update-index --skip-worktree examples/network/providerconfig.yaml`, or leave the file
+> alone and create the secret separately from a `creds.conf`, which is gitignored:
+>
+> ```bash
+> kubectl create ns network-team
+> kubectl create secret generic aws-creds -n network-team --from-file=creds=creds.conf
+> ```
+
+Once it is up, apply the example as normal:
+
+```bash
+kubectl apply -f examples/network/configuration-aws-network.yaml
 ```
 
 ### Available CLI Options
