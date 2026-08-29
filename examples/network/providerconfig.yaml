@@ -1,9 +1,13 @@
 # Passed to `crossplane project run --extra-resources=` so a dev cluster comes
 # up already able to authenticate to AWS.
 #
-# Fill in the credentials below before running. Do NOT commit real ones — see
-# the README's "Running a Local Dev Cluster" section for how to keep them out
-# of git.
+# The ProviderConfig and the secret it references are kept together here so
+# automated testing can apply both with one --extra-resources argument.
+#
+# Fill in the credentials below before running, but do NOT commit real ones.
+# Keep your edit out of git first:
+#
+#   git update-index --skip-worktree examples/network/providerconfig.yaml
 apiVersion: aws.m.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:

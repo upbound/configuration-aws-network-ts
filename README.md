@@ -310,15 +310,23 @@ applies the ProviderConfig and the `aws-creds` secret it references.
 `REPLACE_ME` placeholders — fill in the same `[default]` credentials described under
 [AWS static credentials](#aws-static-credentials) before running.
 
-> **Do not commit real credentials.** The file is tracked, so an edited copy is one `git add .`
-> away from being published. Either keep the edit out of the index with
-> `git update-index --skip-worktree examples/network/providerconfig.yaml`, or leave the file
-> alone and create the secret separately from a `creds.conf`, which is gitignored:
+The ProviderConfig and the `aws-creds` secret it references live in this one file on purpose,
+so that automated testing can bring both up with a single `--extra-resources` argument.
+
+> **Do not commit real credentials.** The file is tracked and carries the secret inline, so an
+> edited copy is one `git add .` away from being published. Before filling it in, tell git to
+> ignore your changes to it:
 >
 > ```bash
-> kubectl create ns network-team
-> kubectl create secret generic aws-creds -n network-team --from-file=creds=creds.conf
+> git update-index --skip-worktree examples/network/providerconfig.yaml
 > ```
+>
+> Adding the path to `.gitignore` will not do it — gitignore only applies to untracked files,
+> and this one is tracked. `skip-worktree` is the equivalent for a tracked file, but it is
+> local to your clone, so everyone working on the repo has to run it themselves.
+>
+> To pick the file up again later — say to change the placeholders themselves —
+> reverse it with `--no-skip-worktree`.
 
 Once it is up, apply the example as normal:
 
