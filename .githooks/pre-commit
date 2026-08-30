@@ -1,0 +1,69 @@
+#!/bin/sh
+# Blocks commits that carry AWS credentials.
+#
+# examples/network/providerconfig.yaml holds a ProviderConfig and its secret
+# together so automated testing can apply both at once. That means the file is
+# tracked with placeholders and is meant to be edited locally — one `git add .`
+# away from publishing real credentials.
+#
+# Enable with:
+#
+#   git config core.hooksPath .githooks
+#
+# Checks staged content, not the working tree, since that is what a commit
+# records. `git commit --no-verify` bypasses it.
+#
+# Deliberately no `set -e`: this script manages its own exit status, and an
+# AND-OR list returning non-zero must not abort the scan early.
+set -u
+
+fail=0
+note() { printf '%s\n' "$*" >&2; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -n "$staged" ] || exit 0
+
+# 1. The credentials file must still hold its placeholders when committed.
+guarded='examples/network/providerconfig.yaml'
+if printf '%s\n' "$staged" | grep -qx "$guarded"; then
+  if ! git show ":$guarded" 2>/dev/null | grep -q 'REPLACE_ME'; then
+    note "BLOCKED: $guarded is staged with its REPLACE_ME placeholders removed."
+    note ""
+    note "  Real credentials must never be committed. To keep your local edit"
+    note "  out of git for good:"
+    note ""
+    note "    git restore --staged $guarded"
+    note "    git update-index --skip-worktree $guarded"
+    note ""
+    fail=1
+  fi
+fi
+
+# 2. Belt and braces: an AWS key pasted into any staged file, not just that one.
+#    grep -a so a binary blob is scanned rather than skipped. This file is
+#    exempt: it necessarily contains the patterns it searches for.
+offenders=$(
+  printf '%s\n' "$staged" | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if [ "$f" = '.githooks/pre-commit' ]; then continue; fi
+    blob=$(git show ":$f" 2>/dev/null) || continue
+    if printf '%s' "$blob" | grep -aEq '(AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16}'; then
+      printf '%s\taccess key ID\n' "$f"
+    fi
+    if printf '%s' "$blob" | grep -aEq 'aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'; then
+      printf '%s\tsecret access key\n' "$f"
+    fi
+  done
+)
+
+if [ -n "$offenders" ]; then
+  printf '%s\n' "$offenders" | while IFS="$(printf '\t')" read -r f kind; do
+    note "BLOCKED: $f looks like it contains an AWS $kind."
+  done
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  note "Commit aborted. Use --no-verify only if you are certain."
+fi
+exit "$fail"

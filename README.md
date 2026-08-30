@@ -290,9 +290,57 @@ to see the composite's spec and status.
 
 ### Running a Local Dev Cluster
 
+`crossplane project run` builds this project into a Kind cluster running Crossplane. On its own
+that leaves you with a cluster that cannot reach AWS and has no namespace to compose into, so
+pass both along:
+
 ```bash
-crossplane project run     # Kind cluster + Crossplane + this configuration
+crossplane project run \
+  --init-resources=examples/network/namespace-network-team.yaml \
+  --extra-resources=examples/network/providerconfig.yaml
+
 crossplane project stop    # tear it down
+```
+
+`--init-resources` applies the `network-team` namespace before the project installs, so the
+ProviderConfig and the composed resources have somewhere to land. `--extra-resources` then
+applies the ProviderConfig and the `aws-creds` secret it references.
+
+[examples/network/providerconfig.yaml](examples/network/providerconfig.yaml) ships with
+`REPLACE_ME` placeholders — fill in the same `[default]` credentials described under
+[AWS static credentials](#aws-static-credentials) before running.
+
+The ProviderConfig and the `aws-creds` secret it references live in this one file on purpose,
+so that automated testing can bring both up with a single `--extra-resources` argument.
+
+> **Do not commit real credentials.** The file is tracked and carries the secret inline, so an
+> edited copy is one `git add .` away from being published. Before filling it in, tell git to
+> ignore your changes to it:
+>
+> ```bash
+> git update-index --skip-worktree examples/network/providerconfig.yaml
+> ```
+>
+> Adding the path to `.gitignore` will not do it — gitignore only applies to untracked files,
+> and this one is tracked. `skip-worktree` is the equivalent for a tracked file. To pick the
+> file up again later — say to change the placeholders themselves — reverse it with
+> `--no-skip-worktree`.
+
+There is also a pre-commit hook in [.githooks/](.githooks/) that refuses any commit staging
+this file without its placeholders, or staging an AWS access key or secret key in any other
+file. It is worth enabling once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Hooks are not installed by cloning, so this is opt-in — it protects you, not the repository.
+`git commit --no-verify` bypasses it.
+
+Once it is up, apply the example as normal:
+
+```bash
+kubectl apply -f examples/network/configuration-aws-network.yaml
 ```
 
 ### Available CLI Options
