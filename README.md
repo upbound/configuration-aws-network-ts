@@ -326,16 +326,19 @@ so that automated testing can bring both up with a single `--extra-resources` ar
 > file up again later — say to change the placeholders themselves — reverse it with
 > `--no-skip-worktree`.
 
-There is also a pre-commit hook in [.githooks/](.githooks/) that refuses any commit staging
-this file without its placeholders, or staging an AWS access key or secret key in any other
-file. It is worth enabling once per clone:
+[hack/check-credentials.sh](hack/check-credentials.sh) refuses this file without its
+placeholders, or an AWS access key or secret key in any other file. It runs in two places:
 
-```bash
-git config core.hooksPath .githooks
-```
+- **CI**, over every tracked file, in the `credentials` job. This one cannot be skipped, and is
+  what actually keeps credentials off `main`.
+- **A pre-commit hook**, over staged content, so you find out before the push rather than after.
+  Hooks are not installed by cloning, so enable it once per clone:
 
-Hooks are not installed by cloning, so this is opt-in — it protects you, not the repository.
-`git commit --no-verify` bypasses it.
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+
+  `git commit --no-verify` bypasses the hook — but not CI.
 
 Once it is up, apply the example as normal:
 
