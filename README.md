@@ -39,7 +39,7 @@ kind: Configuration
 metadata:
   name: configuration-aws-network
 spec:
-  package: xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.2.0
+  package: xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.3.0
 ```
 
 Verify the package is healthy. If not, run `kubectl describe configuration.pkg configuration-aws-network`.
@@ -47,7 +47,7 @@ Verify the package is healthy. If not, run `kubectl describe configuration.pkg c
 ```sh
 $ kubectl get configuration.pkg  configuration-aws-network
 NAME                        INSTALLED   HEALTHY   PACKAGE                                                           AGE
-configuration-aws-network   True        True      xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.2.0   18m
+configuration-aws-network   True        True      xpkg.upbound.io/upbound/configuration-aws-network-ts:v0.3.0   18m
 ```
 
 ### Configuring AWS Authentication
@@ -372,7 +372,7 @@ crossplane project build
 it references:
 
 ```bash
-crossplane project push --tag v0.2.0
+crossplane project push --tag v0.3.0
 ```
 
 Both run in [CI](.github/workflows/ci.yaml) on every push.
