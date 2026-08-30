@@ -49,6 +49,19 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Computed version: ${VERSION}"
 
+  # examples/network/providerconfig.yaml is tracked with placeholders and meant
+  # to be edited locally, so real credentials are one `git add .` away from
+  # being published. The pre-commit hook in .githooks/ catches that, but hooks
+  # are opt-in per clone — this is the check that cannot be skipped.
+  credentials:
+    runs-on: *default-runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check for AWS credentials
+        run: hack/check-credentials.sh
+
   # TEMPORARY: build the crossplane CLI from source, because TypeScript
   # embedded functions are not in a released CLI yet. Building it once and
   # sharing the binary keeps the jobs below from each pulling the CLI's whole
@@ -60,7 +73,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: stevendborrelli/cli
-          ref: project-typescript-support
+          # Pinned to a commit rather than the branch: the branch is force-pushed
+          # as the PR is revised, which would silently change what a release
+          # builds. Bump this when picking up new CLI changes.
+          ref: 0d19745dc682ca02085f59bc8d9dcf5c37538421
 
       # Take the Go version from the CLI's own go.mod so this keeps working as
       # the CLI moves forward.
